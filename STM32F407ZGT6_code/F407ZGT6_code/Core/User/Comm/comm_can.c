@@ -4,7 +4,8 @@
 #include "stdio.h"
 #include "stdbool.h"
 
-#define CAN_POINTER_COMM        &hcan2
+//#define CAN_POINTER_COMM        &hcan2
+//注释掉了，使用带参数的初始化函数
 
 //#define LIMIT_MIN_MAX(x,min,max) (x) = (((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 //这个用内联函数替换掉了，避免warning
@@ -49,7 +50,7 @@ float uint_to_float(int x_int, float x_min, float x_max, int bits)
 }
 
 
-void CommCan_Init(void)
+void CommCan_Init(CAN_HandleTypeDef *hCan)
 {
     CAN_FilterTypeDef   sCAN_Filter;
     
@@ -64,9 +65,9 @@ void CommCan_Init(void)
     sCAN_Filter.FilterActivation = ENABLE;              /* 启用或禁用过滤器 */
     sCAN_Filter.SlaveStartFilterBank = 0;               /* 选择启动从过滤器组 */
     
-    HAL_CAN_ConfigFilter(CAN_POINTER_COMM, &sCAN_Filter);
+    HAL_CAN_ConfigFilter(&hCan, &sCAN_Filter);
     
-    HAL_CAN_Start(CAN_POINTER_COMM);       /* 开启CAN通信 */
+    HAL_CAN_Start(&hCan);       /* 开启CAN通信 */
     HAL_CAN_ActivateNotification(CAN_POINTER_COMM, CAN_IT_RX_FIFO0_MSG_PENDING);   /* 开启挂起中断允许 */
 }
 

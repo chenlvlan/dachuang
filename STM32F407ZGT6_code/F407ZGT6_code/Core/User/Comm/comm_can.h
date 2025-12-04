@@ -46,7 +46,7 @@ enum{
 };
 
 
-void CommCan_Init(void);
+void CommCan_Init(CAN_HandleTypeDef *hCan);
 
 void CommCan_SysMotorRestart(uint8_t dev_addr);                             /* 重启电机 */
 void CommCan_GetVerInfo(uint8_t dev_addr);                                  /* 读取电机版本信息 */

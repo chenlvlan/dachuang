@@ -78,7 +78,7 @@ typedef struct
 }MotionCtrlPara_t;
 
 
-void CommRs485_Init(void);
+void CommRs485_Init(USART_TypeDef *hUart);
 void CommRs485_Restart(uint8_t dev_addr);
 void CommRs485_GetVerInfo(uint8_t dev_addr);
 void CommRs485_GetRealtimeInfo(uint8_t dev_addr);

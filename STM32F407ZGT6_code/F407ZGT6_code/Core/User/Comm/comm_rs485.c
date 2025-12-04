@@ -7,11 +7,11 @@
 uint8_t comm_uart_rx_buffer[RX_LEN] = {0};
 uint8_t comm_uart_tx_buffer[RX_LEN] = {0};
 
-void CommRs485_Init(void)
+void CommRs485_Init(USART_TypeDef *hUart)
 {
-    UART_IDLEIT_Enable(&huart3);
-    UART_Receive_DMA(&huart3, comm_uart_rx_buffer, RX_LEN);
-    UART_EN_RS485_RX(&huart3);
+    UART_IDLEIT_Enable(&hUart);
+    UART_Receive_DMA(&hUart, comm_uart_rx_buffer, RX_LEN);
+    UART_EN_RS485_RX(&hUart);
 }
 
 /* 数据发送完成中断 */

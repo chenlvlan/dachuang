@@ -1,0 +1,48 @@
+##############################
+# STM32CubeIDE / CubeMX
+##############################
+
+# Build output directories
+Debug/
+Release/
+build/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+*.cyclo
+
+# IDE-specific files
+.settings/
+.cproject
+.project
+.loadpath
+.externalToolBuilders
+
+# CubeMX generated backup files
+*.launch
+*.ioc_backup
+*.mxproject
+*.project
+*.ewp
+*.uvoptx
+*.uvprojx
+
+# Temporary files
+*~
+*.swp
+*.tmp
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+
+# CMake or Makefile generated
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake

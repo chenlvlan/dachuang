@@ -29,6 +29,9 @@
 /* USER CODE BEGIN Includes */
 
 #include "test.h"
+#include "../User/Comm/comm_can.h"
+#include "../User/Comm/comm_rs485.h"
+
 
 /* USER CODE END Includes */
 

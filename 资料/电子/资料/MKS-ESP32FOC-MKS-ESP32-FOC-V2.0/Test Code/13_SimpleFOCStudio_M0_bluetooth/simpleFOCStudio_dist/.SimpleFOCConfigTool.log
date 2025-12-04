@@ -1,0 +1,50 @@
+root - ERROR - Write timeout
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 898, in run
+  File "src\simpleFOCConnector.py", line 622, in updateStates
+  File "src\simpleFOCConnector.py", line 460, in getCommand
+  File "src\simpleFOCConnector.py", line 452, in sendCommand
+  File "serial\serialwin32.py", line 325, in write
+serial.serialutil.SerialTimeoutException: Write timeout
+root - ERROR - byref() argument must be a ctypes instance, not 'NoneType'
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 870, in run
+  File "serial\serialwin32.py", line 285, in read
+TypeError: byref() argument must be a ctypes instance, not 'NoneType'
+root - ERROR - byref() argument must be a ctypes instance, not 'NoneType'
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 870, in run
+  File "serial\serialwin32.py", line 290, in read
+TypeError: byref() argument must be a ctypes instance, not 'NoneType'
+root - WARNING - Arrived corrupted data
+root - WARNING - Arrived corrupted data
+root - WARNING - Arrived corrupted data
+root - WARNING - Arrived corrupted data
+root - WARNING - Arrived corrupted data
+root - WARNING - Arrived corrupted data
+root - ERROR - Write timeout
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 898, in run
+  File "src\simpleFOCConnector.py", line 610, in updateStates
+  File "src\simpleFOCConnector.py", line 460, in getCommand
+  File "src\simpleFOCConnector.py", line 452, in sendCommand
+  File "serial\serialwin32.py", line 325, in write
+serial.serialutil.SerialTimeoutException: Write timeout
+root - ERROR - byref() argument must be a ctypes instance, not 'NoneType'
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 870, in run
+  File "serial\serialwin32.py", line 285, in read
+TypeError: byref() argument must be a ctypes instance, not 'NoneType'
+root - ERROR - GetOverlappedResult failed (PermissionError(13, '¾Ü¾ø·ÃÎÊ¡£', None, 5))
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 870, in run
+  File "serial\serialwin32.py", line 295, in read
+serial.serialutil.SerialException: GetOverlappedResult failed (PermissionError(13, '¾Ü¾ø·ÃÎÊ¡£', None, 5))
+root - ERROR - WriteFile failed (PermissionError(13, '¾Ü¾ø·ÃÎÊ¡£', None, 5))
+Traceback (most recent call last):
+  File "src\simpleFOCConnector.py", line 898, in run
+  File "src\simpleFOCConnector.py", line 610, in updateStates
+  File "src\simpleFOCConnector.py", line 460, in getCommand
+  File "src\simpleFOCConnector.py", line 452, in sendCommand
+  File "serial\serialwin32.py", line 317, in write
+serial.serialutil.SerialException: WriteFile failed (PermissionError(13, '¾Ü¾ø·ÃÎÊ¡£', None, 5))

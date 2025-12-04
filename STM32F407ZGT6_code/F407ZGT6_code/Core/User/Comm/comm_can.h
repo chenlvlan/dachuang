@@ -48,34 +48,34 @@ enum{
 
 void CommCan_Init(CAN_HandleTypeDef *hCan);
 
-void CommCan_SysMotorRestart(uint8_t dev_addr);                             /* 重启电机 */
-void CommCan_GetVerInfo(uint8_t dev_addr);                                  /* 读取电机版本信息 */
-void CommCan_GetIq(uint8_t dev_addr);                                       /* 读取实时Q轴电流 */
-void CommCan_GetVelocity(uint8_t dev_addr);                                 /* 读取实时速度 */
-void CommCan_GetPosition(uint8_t dev_addr);                                 /*读实时单圈绝对值角度、多圈绝对值角度 */
-void CommCan_GetStatusInfo(uint8_t dev_addr);                               /* 读取电压、电流、温度、状态、故障实时状态信息 */
-void CommCan_GetMotorPara(uint8_t dev_addr);                                /* 读取电机硬件参数 */
-void CommCan_SysMotorResetFault(uint8_t dev_addr);                          /* 电机清除故障 */
-void CommCan_SetZeroByCurrentRawAngle(uint8_t dev_addr);                    /* 设置电机当前位置为原点*/
-void CommCan_SetPosCtrlMaxVelocity(uint8_t dev_addr, float target_param);   /* 设置位置模式最大速度 */
-void CommCan_SetPosVelCtrlMaxIq(uint8_t dev_addr, float target_param);      /* 设置位置或速度模式最大力矩 */
-void CommCan_SetIqCtrlSlope(uint8_t dev_addr, float target_param);          /* 设置力矩速度电流斜率 */
-void CommCan_SetVelCtrlAcc(uint8_t dev_addr, float target_param);           /* 设置速度模式下最大加速度 */
-void CommCan_SetPosKpParam(uint8_t dev_addr, float target_param );          /* 位置环Kp参数设置*/
-void CommCan_SetPosKiParam(uint8_t dev_addr, float target_param );          /* 位置环Ki参数设置*/
-void CommCan_SetVelKpParam(uint8_t dev_addr, float target_param );          /* 速度环Kp参数设置*/
-void CommCan_SetVelKiParam(uint8_t dev_addr, float target_param );          /* 速度环Ki参数设置*/
-void CommCan_SetIq(uint8_t dev_addr, float target_Iq);                      /* 力矩模式设置Q轴电流 */
-void CommCan_SetVelocity(uint8_t dev_addr, float target_vel);               /* 速度模式设置速度 */
-void CommCan_SetAbsPosition_Count(uint8_t dev_addr, int32_t traget_pos);    /* 绝对值位置控制 */
-void CommCan_SetRelateive_Count(uint8_t dev_addr, int32_t target_pos);      /* 相对值位置控制，单位Count，一圈为16384Counts */
-void CommCan_ShortestHomePosition(uint8_t dev_addr);                        /* 最短距离回到原点 */
-void CommCan_BreakCtrl(uint8_t dev_addr, uint8_t open_or_close);            /* 抱闸输出控制*/
-void CommCan_MotorDisableCtrl(uint8_t dev_addr);                            /* 电机失能 */
+void CommCan_SysMotorRestart(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                             /* 重启电机 */
+void CommCan_GetVerInfo(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                                  /* 读取电机版本信息 */
+void CommCan_GetIq(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                                       /* 读取实时Q轴电流 */
+void CommCan_GetVelocity(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                                 /* 读取实时速度 */
+void CommCan_GetPosition(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                                 /*读实时单圈绝对值角度、多圈绝对值角度 */
+void CommCan_GetStatusInfo(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                               /* 读取电压、电流、温度、状态、故障实时状态信息 */
+void CommCan_GetMotorPara(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                                /* 读取电机硬件参数 */
+void CommCan_SysMotorResetFault(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                          /* 电机清除故障 */
+void CommCan_SetZeroByCurrentRawAngle(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                    /* 设置电机当前位置为原点*/
+void CommCan_SetPosCtrlMaxVelocity(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param);   /* 设置位置模式最大速度 */
+void CommCan_SetPosVelCtrlMaxIq(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param);      /* 设置位置或速度模式最大力矩 */
+void CommCan_SetIqCtrlSlope(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param);          /* 设置力矩速度电流斜率 */
+void CommCan_SetVelCtrlAcc(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param);           /* 设置速度模式下最大加速度 */
+void CommCan_SetPosKpParam(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param );          /* 位置环Kp参数设置*/
+void CommCan_SetPosKiParam(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param );          /* 位置环Ki参数设置*/
+void CommCan_SetVelKpParam(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param );          /* 速度环Kp参数设置*/
+void CommCan_SetVelKiParam(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_param );          /* 速度环Ki参数设置*/
+void CommCan_SetIq(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_Iq);                      /* 力矩模式设置Q轴电流 */
+void CommCan_SetVelocity(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float target_vel);               /* 速度模式设置速度 */
+void CommCan_SetAbsPosition_Count(CAN_HandleTypeDef *hCan,uint8_t dev_addr, int32_t traget_pos);    /* 绝对值位置控制 */
+void CommCan_SetRelateive_Count(CAN_HandleTypeDef *hCan,uint8_t dev_addr, int32_t target_pos);      /* 相对值位置控制，单位Count，一圈为16384Counts */
+void CommCan_ShortestHomePosition(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                        /* 最短距离回到原点 */
+void CommCan_BreakCtrl(CAN_HandleTypeDef *hCan,uint8_t dev_addr, uint8_t open_or_close);            /* 抱闸输出控制*/
+void CommCan_MotorDisableCtrl(CAN_HandleTypeDef *hCan,uint8_t dev_addr);                            /* 电机失能 */
 
-void CommCan_GetMitCtrlModePara(uint8_t dev_addr);
-void CommCan_ConfigMitCtrlModePara(uint8_t dev_addr, float config_pos_max, float config_vel_max, float config_t_max);
-void CommCan_GetMitCtrlModeRealTimeData(uint8_t dev_addr);
-void CommCan_MotorRunCtrlMode_Control(uint32_t dev_addr, float pos_target, float vel_target, float pos_gain_kp, float vel_gain_kd, float torque_target);
+void CommCan_GetMitCtrlModePara(CAN_HandleTypeDef *hCan,uint8_t dev_addr);
+void CommCan_ConfigMitCtrlModePara(CAN_HandleTypeDef *hCan,uint8_t dev_addr, float config_pos_max, float config_vel_max, float config_t_max);
+void CommCan_GetMitCtrlModeRealTimeData(CAN_HandleTypeDef *hCan,uint8_t dev_addr);
+void CommCan_MotorRunCtrlMode_Control(CAN_HandleTypeDef *hCan,uint32_t dev_addr, float pos_target, float vel_target, float pos_gain_kp, float vel_gain_kd, float torque_target);
 
 #endif

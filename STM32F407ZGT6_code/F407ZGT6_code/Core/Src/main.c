@@ -116,16 +116,21 @@ int main(void) {
 	enableHVHP();
 	CommCan_Init(&hcan1);
 	CommCan_Init(&hcan2);
-	HAL_Delay(1000);
-	CommCan_SetAbsPosition_Count(&hcan1, 11, 0);
-	CommCan_SetAbsPosition_Count(&hcan1, 12, 0);
-	CommCan_SetAbsPosition_Count(&hcan2, 14, 0);
-	CommCan_SetAbsPosition_Count(&hcan2, 13, 0);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+		HAL_Delay(1000);
+		CommCan_SetAbsPosition_Count(&hcan1, 11, 0);
+		CommCan_SetAbsPosition_Count(&hcan1, 12, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, 14, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, 13, 0);
+		HAL_Delay(1000);
+		CommCan_SetAbsPosition_Count(&hcan1, 11, 1024);
+		CommCan_SetAbsPosition_Count(&hcan1, 12, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, 14, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, 13, 1024);
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_SET);
 		//HAL_Delay(5000);
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_RESET);

@@ -9,6 +9,7 @@
 #define USER_COMM_STRUCT_H_
 
 #include "main.h"
+#include <stdbool.h>
 
 typedef struct {
 	uint16_t bootVer;
@@ -69,6 +70,7 @@ enum status {
 	positionControl = 4,
 	motorDisable = 0,
 };
+
 struct defaultPara_t {
 	float tor_Const;
 	float pos_Kp;
@@ -77,6 +79,13 @@ struct defaultPara_t {
 	float vel_Ki;
 };
 
-void enableHVHP();
+enum idJM{
+	LF=11,
+	LR=12,
+	RF=14,
+	RR=13,
+};
+
+void HVHP(bool isEN);
 
 #endif /* USER_COMM_STRUCT_H_ */

@@ -54,7 +54,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+information_t jointMotor[4];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -113,7 +113,7 @@ int main(void) {
 	MX_UART5_Init();
 	MX_ADC2_Init();
 	/* USER CODE BEGIN 2 */
-	enableHVHP();
+	HVHP(1);
 	CommCan_Init(&hcan1);
 	CommCan_Init(&hcan2);
 	/* USER CODE END 2 */
@@ -122,15 +122,15 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 	while (1) {
 		HAL_Delay(1000);
-		CommCan_SetAbsPosition_Count(&hcan1, 11, 0);
-		CommCan_SetAbsPosition_Count(&hcan1, 12, 0);
-		CommCan_SetAbsPosition_Count(&hcan2, 14, 0);
-		CommCan_SetAbsPosition_Count(&hcan2, 13, 0);
+		CommCan_SetAbsPosition_Count(&hcan1, LF, 0);
+		CommCan_SetAbsPosition_Count(&hcan1, LR, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, RF, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, RR, 0);
 		HAL_Delay(1000);
-		CommCan_SetAbsPosition_Count(&hcan1, 11, 1024);
-		CommCan_SetAbsPosition_Count(&hcan1, 12, 1024);
-		CommCan_SetAbsPosition_Count(&hcan2, 14, 1024);
-		CommCan_SetAbsPosition_Count(&hcan2, 13, 1024);
+		CommCan_SetAbsPosition_Count(&hcan1, LF, 1024);
+		CommCan_SetAbsPosition_Count(&hcan1, LR, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_SET);
 		//HAL_Delay(5000);
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_RESET);
@@ -187,7 +187,7 @@ void SystemClock_Config(void) {
 /* USER CODE BEGIN 4 */
 
 int _write(int file, char *ptr, int len) {
-	HAL_UART_Transmit(&huart4, (uint8_t*) ptr, len, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart1, (uint8_t*) ptr, len, HAL_MAX_DELAY);
 	return len;
 }
 

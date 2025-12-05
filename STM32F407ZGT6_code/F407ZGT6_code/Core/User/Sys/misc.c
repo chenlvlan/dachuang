@@ -7,7 +7,7 @@
 
 #include "misc.h"
 
-void enableHVHP() {
-	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_SET);
+void HVHP(bool isEN) {
+	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, (GPIO_PinState)isEN);
 }
 

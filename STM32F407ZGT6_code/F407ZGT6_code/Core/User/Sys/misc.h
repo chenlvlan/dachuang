@@ -1,5 +1,5 @@
 /*
- * struct.h
+ * misc.h
  *
  *  Created on: Dec 4, 2025
  *      Author: yufei
@@ -7,6 +7,8 @@
 
 #ifndef USER_COMM_STRUCT_H_
 #define USER_COMM_STRUCT_H_
+
+#include "main.h"
 
 typedef struct {
 	uint16_t bootVer;
@@ -74,5 +76,7 @@ struct defaultPara_t {
 	float vel_Kp;
 	float vel_Ki;
 };
+
+void enableHVHP();
 
 #endif /* USER_COMM_STRUCT_H_ */

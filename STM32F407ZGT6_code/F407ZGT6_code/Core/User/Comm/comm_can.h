@@ -2,7 +2,7 @@
 #define __COMM_CAN_H
 
 #include "main.h"
-#include "struct.h"
+#include "../User/Sys/misc.h"
 
 typedef struct
 {

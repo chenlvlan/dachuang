@@ -10,6 +10,9 @@
 //#define LIMIT_MIN_MAX(x,min,max) (x) = (((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 //这个用内联函数替换掉了，避免warning
 
+#define isDebug 0
+//正常运行模式，不打印调试信息为0，打印调试信息为1
+
 #define POS_MAX_Default     95.5f
 #define VEL_MAX_DEFAULT     45.0f
 #define T_MAX_DEFAULT       18.0f
@@ -342,8 +345,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 	rx_addr = CanRxMessage.RxHead.StdId;
 	rx_cmd = CanRxMessage.canRxBuf[0];
 
-	printf("\r\n");
-	printf("rx_addr = %d\r\n", rx_addr);
+	if (isDebug) {
+		printf("\r\n");
+		printf("rx_addr = %d\r\n", rx_addr);
+	}
 
 	switch (rx_cmd) {
 	case eCAN_GetVerInfo: {
@@ -361,12 +366,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&CAN_SelfStatues, &(CanRxMessage.canRxBuf[7]),
 				sizeof(CAN_SelfStatues));
 
-		printf("\r\n");
-		printf("Boot_Ver：%d\r\n", BootAppStatus);
-		printf("Sofatware_Ver: %d\r\n", ApplicationStatus);
-		printf("Hardware_Ver: %02X\r\n", HardwardStatus);
-		printf("CAN_AUX_Ver: %02X\r\n", CAN_SelfStatues);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Boot_Ver：%d\r\n", BootAppStatus);
+			printf("Sofatware_Ver: %d\r\n", ApplicationStatus);
+			printf("Hardware_Ver: %02X\r\n", HardwardStatus);
+			printf("CAN_AUX_Ver: %02X\r\n", CAN_SelfStatues);
+		}
+
 	}
 		break;
 
@@ -374,9 +380,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		float param_data;
 		memcpy(&param_data, &(CanRxMessage.canRxBuf[1]), sizeof(param_data));
 
-		printf("\r\n");
-		printf("Pos_Kp：%f\r\n", param_data);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Pos_Kp：%f\r\n", param_data);
+		}
+
 	}
 		break;
 
@@ -384,9 +391,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		float param_data;
 		memcpy(&param_data, &(CanRxMessage.canRxBuf[1]), sizeof(param_data));
 
-		printf("\r\n");
-		printf("Pos_Ki：%f\r\n", param_data);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Pos_Ki：%f\r\n", param_data);
+		}
+
 	}
 		break;
 
@@ -394,9 +402,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		float param_data;
 		memcpy(&param_data, &(CanRxMessage.canRxBuf[1]), sizeof(param_data));
 
-		printf("\r\n");
-		printf("Vel_Kp：%f\r\n", param_data);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Vel_Kp：%f\r\n", param_data);
+		}
+
 	}
 		break;
 
@@ -404,9 +413,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		float param_data;
 		memcpy(&param_data, &(CanRxMessage.canRxBuf[1]), sizeof(param_data));
 
-		printf("\r\n");
-		printf("Vel_Ki：%f\r\n", param_data);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Vel_Ki：%f\r\n", param_data);
+		}
+
 	}
 		break;
 
@@ -416,9 +426,9 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&IqCurrentValue, &(CanRxMessage.canRxBuf[1]),
 				sizeof(IqCurrentValue));
 
-		printf("\r\n");
-		printf("Iq：%fA\r\n", IqCurrentValue * 0.001f);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Iq：%fA\r\n", IqCurrentValue * 0.001f);
+		}
 
 	}
 		break;
@@ -429,9 +439,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&RealtimeVelocity, &(CanRxMessage.canRxBuf[1]),
 				sizeof(RealtimeVelocity));
 
-		printf("\r\n");
-		printf("Velocity：%fRpm\r\n", RealtimeVelocity * 0.01);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Velocity：%fRpm\r\n", RealtimeVelocity * 0.01);
+		}
+
 	}
 		break;
 
@@ -451,13 +462,14 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&RunMode, &(CanRxMessage.canRxBuf[6]), sizeof(RunMode));
 		memcpy(&SysFault, &(CanRxMessage.canRxBuf[7]), sizeof(SysFault));
 
-		printf("\r\n");
-		printf("Bus_Voltage:%.2fV\r\n", BusVoltage_multi100 * 0.01);
-		printf("Bus_Current:%.2fA\r\n", BusCurrent_multi100 * 0.01);
-		printf("Work_Temp:%.2f\r\n", Temperature * 1.0);
-		printf("Run_Mode:%d\r\n", RunMode);
-		printf("Fault_Code:%d\r\n", SysFault);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Bus_Voltage:%.2fV\r\n", BusVoltage_multi100 * 0.01);
+			printf("Bus_Current:%.2fA\r\n", BusCurrent_multi100 * 0.01);
+			printf("Work_Temp:%.2f\r\n", Temperature * 1.0);
+			printf("Run_Mode:%d\r\n", RunMode);
+			printf("Fault_Code:%d\r\n", SysFault);
+		}
+
 	}
 		break;
 
@@ -465,9 +477,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		uint8_t SysFault;
 		memcpy(&SysFault, &(CanRxMessage.canRxBuf[1]), sizeof(SysFault));
 
-		printf("\r\n");
-		printf("Fault_Code:%d\r\n", SysFault);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Fault_Code:%d\r\n", SysFault);
+		}
+
 	}
 		break;
 
@@ -482,11 +495,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&reduction_ratio, &(CanRxMessage.canRxBuf[6]),
 				sizeof(reduction_ratio));
 
-		printf("\r\n");
-		printf("Npp:%d\r\n", motor_pole);
-		printf("Kt:%fN/m\r\n", moment_constant);
-		printf("Gear ratio:%d\r\n", reduction_ratio);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Npp:%d\r\n", motor_pole);
+			printf("Kt:%fN/m\r\n", moment_constant);
+			printf("Gear ratio:%d\r\n", reduction_ratio);
+		}
+
 	}
 		break;
 
@@ -495,9 +509,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&offset_angle, &(CanRxMessage.canRxBuf[1]),
 				sizeof(offset_angle));
 
-		printf("\r\n");
-		printf("Mec_offset:%d°\r\n", offset_angle);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Mec_offset:%d°\r\n", offset_angle);
+		}
+
 	}
 		break;
 
@@ -506,9 +521,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&pos_outlimit, &(CanRxMessage.canRxBuf[1]),
 				sizeof(pos_outlimit));
 
-		printf("\r\n");
-		printf("PosCtrlMaxVelocity:%fRpm\r\n", pos_outlimit * 0.01);
-		printf("\r\n");
+		if (isDebug) {
+			printf("PosCtrlMaxVelocity:%fRpm\r\n", pos_outlimit * 0.01);
+		}
+
 	}
 		break;
 
@@ -517,9 +533,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&pos_vel_maxiq, &(CanRxMessage.canRxBuf[1]),
 				sizeof(pos_vel_maxiq));
 
-		printf("\r\n");
-		printf("PosVelCtrlMaxIq:%fA\r\n", pos_vel_maxiq * 0.001);
-		printf("\r\n");
+		if (isDebug) {
+			printf("PosVelCtrlMaxIq:%fA\r\n", pos_vel_maxiq * 0.001);
+		}
+
 	}
 		break;
 
@@ -527,9 +544,10 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		uint32_t iqslope;
 		memcpy(&iqslope, &(CanRxMessage.canRxBuf[1]), sizeof(iqslope));
 
-		printf("\r\n");
-		printf("IqCtrlSlope:%fA/s\r\n", iqslope * 0.001);
-		printf("\r\n");
+		if (isDebug) {
+			printf("IqCtrlSlope:%fA/s\r\n", iqslope * 0.001);
+		}
+
 	}
 		break;
 
@@ -537,19 +555,21 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		uint32_t vel_acc;
 		memcpy(&vel_acc, &(CanRxMessage.canRxBuf[1]), sizeof(vel_acc));
 
-		printf("\r\n");
-		printf("VelCtrlAcc:%fRpm\r\n", vel_acc * 0.01);
-		printf("\r\n");
+		if (isDebug) {
+			printf("VelCtrlAcc:%fRpm\r\n", vel_acc * 0.01);
+		}
+
 	}
 		break;
 
 	case eCAN_BreakCtrl: {
 		uint8_t break_status = CanRxMessage.canRxBuf[1];
 
-		printf("\r\n");
-		printf("Break_state:%s\r\n",
-				(break_status == 0) ? "Disable" : "Enable");
-		printf("\r\n");
+		if (isDebug) {
+			printf("Break_state:%s\r\n",
+					(break_status == 0) ? "Disable" : "Enable");
+		}
+
 	}
 		break;
 
@@ -565,12 +585,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		memcpy(&MultiAbsPosCtrlTragetVal, &(CanRxMessage.canRxBuf[3]),
 				sizeof(MultiAbsPosCtrlTragetVal));
 
-		printf("\r\n");
-		printf("SingleAbsPos:%f°\r\n",
-				SingleAbsPosCtrlTragetVal * (360.0f / 16384));
-		printf("MultiAbsPos:%f°\r\n",
-				MultiAbsPosCtrlTragetVal * (360.0f / 16384));
-		printf("\r\n");
+		if (isDebug) {
+			printf("SingleAbsPos:%f°\r\n",
+					SingleAbsPosCtrlTragetVal * (360.0f / 16384));
+			printf("MultiAbsPos:%f°\r\n",
+					MultiAbsPosCtrlTragetVal * (360.0f / 16384));
+		}
+
 	}
 		break;
 
@@ -585,11 +606,12 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 		vel_max = vel_max_get * 0.01f;
 		t_max = t_max_get * 0.01f;
 
-		printf("\r\n");
-		printf("Pos_Max:%.2f\r\n", pos_max);
-		printf("Vel_Max:%.2f\r\n", vel_max);
-		printf("T_Max:%.2f\r\n", t_max);
-		printf("\r\n");
+		if (isDebug) {
+			printf("Pos_Max:%.2f\r\n", pos_max);
+			printf("Vel_Max:%.2f\r\n", vel_max);
+			printf("T_Max:%.2f\r\n", t_max);
+		}
+
 	}
 		break;
 
@@ -605,12 +627,13 @@ void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
 				-t_max, t_max, 12);
 		uint8_t status = pBuf[6];
 
-		printf("\r\n");
-		printf("current_pos:%.2f\r\n", curr_Pos);
-		printf("current_vel:%.2f\r\n", curr_vel);
-		printf("current_torque:%.2f\r\n", curr_torque);
-		printf("status:%02X\r\n", status);
-		printf("\r\n");
+		if (isDebug) {
+			printf("current_pos:%.2f\r\n", curr_Pos);
+			printf("current_vel:%.2f\r\n", curr_vel);
+			printf("current_torque:%.2f\r\n", curr_torque);
+			printf("status:%02X\r\n", status);
+		}
+
 	}
 		break;
 

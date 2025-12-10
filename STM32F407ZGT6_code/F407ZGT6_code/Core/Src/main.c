@@ -79,7 +79,7 @@ int main(void) {
 	/* USER CODE BEGIN 1 */
 	/**
 	 * 需要做的事：
-	 * 1、测试主控是否能接收到关节电机can通信返回的数据
+	 * 1、测试主控是否能接收到关节电机can通信返回的数据（已实现！）
 	 * 2、写一个中间层，介于应用层的代码与关节电机控制函数之间，可以被应用层调用，转换后传给控制函数
 	 * 3、加一个定时器，周期50ms（20Hz），作为运动控制环，控制关节电机和轮毂电机
 	 * 4、完善FOC驱动器的代码，增加与主控的通信
@@ -145,6 +145,7 @@ int main(void) {
 		CommCan_SetAbsPosition_Count(&hcan1, LR, 1024);
 		CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
 		CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
+		printf("a cycle\n");
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_SET);
 		//HAL_Delay(5000);
 		//HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, GPIO_PIN_RESET);

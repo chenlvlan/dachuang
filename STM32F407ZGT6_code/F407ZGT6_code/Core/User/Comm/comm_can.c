@@ -333,6 +333,7 @@ void CommCan_MotorRunCtrlMode_Control(CAN_HandleTypeDef *hCan,
 
 /* can总线数据的接收 */
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *canHandle) {
+	//printf("a interrupt of can");
 	uint8_t rx_addr = 0;
 	uint8_t rx_cmd = 0;
 	HAL_CAN_GetRxMessage(canHandle, CAN_RX_FIFO0, &CanRxMessage.RxHead,

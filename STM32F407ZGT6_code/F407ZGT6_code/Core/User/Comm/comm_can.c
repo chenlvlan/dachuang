@@ -10,7 +10,7 @@
 //#define LIMIT_MIN_MAX(x,min,max) (x) = (((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 //这个用内联函数替换掉了，避免warning
 
-#define isDebug 0
+#define isDebug 1
 //正常运行模式，不打印调试信息为0，打印调试信息为1
 
 #define POS_MAX_Default     95.5f

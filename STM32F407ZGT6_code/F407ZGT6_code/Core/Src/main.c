@@ -84,7 +84,7 @@ int main(void) {
 	 * 需要做的事：
 	 * 1、测试主控是否能接收到关节电机can通信返回的数据（已实现！）
 	 * 2、写一个中间层，介于应用层的代码与关节电机控制函数之间，可以被应用层调用，转换后传给控制函数
-	 * 3、加一个定时器，周期20ms（50Hz），作为运动控制环，控制关节电机和轮毂电机
+	 * 3、加一个定时器，周期20ms（50Hz），作为运动控制环，控制关节电机和轮毂电机（已实现！）
 	 * 4、完善FOC驱动器的代码，增加与主控的通信
 	 * 5、增加上电后的无传感器回零功能，其中，LF和RF关节电机下摆直至撞到碳板（此时与原点成
 	 * 确定的角度），LR和RR关节电机增加限位块。基本步骤：
@@ -139,13 +139,14 @@ int main(void) {
 	CommCan_Init(&hcan1); //关节电机can1通信初始化
 	CommCan_Init(&hcan2); //关节电机can2通信初始化
 	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
-	returnToOrigin(0.2, 0.2, 5000);
+	//returnToOrigin(0.2, 0.2, 5000); //回原点
 
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
+		/*
 		HAL_Delay(1000);
 		CommCan_SetAbsPosition_Count(&hcan1, LF, 0);
 		CommCan_SetAbsPosition_Count(&hcan1, LR, 0);
@@ -157,6 +158,8 @@ int main(void) {
 		CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
 		CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
 		printf("a cycle\n");
+		*/
+		app();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

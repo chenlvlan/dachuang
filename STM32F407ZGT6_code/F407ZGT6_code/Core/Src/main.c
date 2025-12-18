@@ -147,18 +147,18 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 	while (1) {
 		/*
-		HAL_Delay(1000);
-		CommCan_SetAbsPosition_Count(&hcan1, LF, 0);
-		CommCan_SetAbsPosition_Count(&hcan1, LR, 0);
-		CommCan_SetAbsPosition_Count(&hcan2, RF, 0);
-		CommCan_SetAbsPosition_Count(&hcan2, RR, 0);
-		HAL_Delay(1000);
-		CommCan_SetAbsPosition_Count(&hcan1, LF, 1024);
-		CommCan_SetAbsPosition_Count(&hcan1, LR, 1024);
-		CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
-		CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
-		printf("a cycle\n");
-		*/
+		 HAL_Delay(1000);
+		 CommCan_SetAbsPosition_Count(&hcan1, LF, 0);
+		 CommCan_SetAbsPosition_Count(&hcan1, LR, 0);
+		 CommCan_SetAbsPosition_Count(&hcan2, RF, 0);
+		 CommCan_SetAbsPosition_Count(&hcan2, RR, 0);
+		 HAL_Delay(1000);
+		 CommCan_SetAbsPosition_Count(&hcan1, LF, 1024);
+		 CommCan_SetAbsPosition_Count(&hcan1, LR, 1024);
+		 CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
+		 CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
+		 //printf("a cycle\n");
+		 */
 		app();
 		/* USER CODE END WHILE */
 

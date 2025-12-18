@@ -12,6 +12,7 @@
 #include <stdbool.h>
 
 extern bool doMotionCtrlCycle;
+extern UART_HandleTypeDef huart4;
 
 //speed in Rad/s, torque in N.m, timeout in ms
 void returnToOrigin(float speed, float torque, uint32_t timeout);

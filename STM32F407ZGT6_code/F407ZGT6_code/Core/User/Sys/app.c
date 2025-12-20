@@ -10,6 +10,7 @@
 bool doMotionCtrlCycle = 0;
 
 void returnToOrigin(float speed, float torque, uint32_t timeout) {
+	HAL_TIM_Base_Stop(&htim3);//暂时停用运动控制环
 	uint32_t startTime = HAL_GetTick(); //开始时间
 	while (HAL_GetTick() - startTime <= timeout) { //在超时时间以内的话
 

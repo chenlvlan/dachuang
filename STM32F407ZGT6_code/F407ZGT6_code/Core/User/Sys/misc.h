@@ -12,78 +12,49 @@
 #include <stdbool.h>
 
 typedef struct {
-	uint16_t bootVer;
-	uint16_t appVer;
-	uint16_t hardwareVer;
-	uint8_t rs485SelfDefVer;
-	uint8_t rs485ModbusVer;
-	uint8_t canSelfDefVer;
-	uint8_t canCanopenVer;
-	uint8_t uid[12];
-} softwareInfo_t;
+	//软件信息
+	uint16_t bootVer; //Boot软件版本
+	uint16_t appVer; //应用软件版本
+	uint16_t hardwareVer; //硬件版本
+	uint8_t canSelfDefVer; //CAN自定义版本
 
-typedef struct {
-	float singleAbsAngle; // Rad
-	float multiAbsAngle;  // Rad
-	float mechVelocity;	  // Rad/s
-	float qAxisCurrent;	  // A
-	float torque;		  // N/m,derived
-	float busVoltage;	  // V
-	float busCurrent;	  // A
-	uint8_t temperature;  // ℃
-	uint8_t runStatus;	  // status
-	uint8_t motorStatue;  // status
+	//运动控制参数
+	float posKp; //位置控制闭环Kp
+	float posKi; //位置控制闭环Ki
+	float velKp; //速度控制闭环Kp
+	float velKi; //速度控制闭环Ki
+	float offsetAngle;	//Rad
+	float posModeMaxVel;	//Rad/s
+	float posVelModeMaxIq;	//A
+	float iqSlope;	//A/s
+	float velModeAcc;	//Rad/s^2
+	bool motorBreak;
+
+	//实时参数
+	float iq;	//A
+	float mechVel;	//Rad
+	float singleAbsAngle;	//Rad
+	float multiAbsAngle;	//Rad
+	float busVolt;	//V
+	float busCurr;	//A
+	uint8_t temperature;	//℃
+	uint8_t runStatus;
+	uint8_t motorStatue;
 	uint8_t errorCode;
-} realTimeData_t;
 
-typedef struct {
-	char name[16];
-	uint8_t polarPairNumber; // Pair
-	float phaseResistance;	 // Ohm
-	float phaseInductance;	 // mH
-	float torqueConstant;	 //(N*m)/A
-	uint8_t reduceRatio;	 // Null
-} motorParameter_t;
+	//电机信息
+	uint8_t polarPair;
+	float torqueConst;	//(N*m)/A
+	uint8_t reduceRatio;
 
-typedef struct {
-	float positionLoop_Kp;				  // Null
-	float positionLoop_Ki;				  // Null
-	float maxVel_Of_PosMode;			  // Rad/s
-	float velocityLoop_Kp;				  // Null
-	float velocityLoop_Ki;				  // Null
-	float maxQAxisCurr_of_PosModeVelMode; // A
-	float maxTorque_Of_VelModePosMode;	  // N*m, derived
-} motionParameter_t;
+} motorDataRead_t
 
-typedef struct {
-	softwareInfo_t softwareInfo;
-	realTimeData_t realTimeData;
-	motorParameter_t motorParameter;
-	motionParameter_t motionParameter;
-} information_t;
-
-enum status {
-	off = 0,
-	volatgeControl = 1,
-	qAxisCurrentControl = 2,
-	velocityControl = 3,
-	positionControl = 4,
-	motorDisable = 0,
+enum idJM {
+	LF = 11, LR = 12, RF = 14, RR = 13,
 };
 
-struct defaultPara_t {
-	float tor_Const;
-	float pos_Kp;
-	float pos_Ki;
-	float vel_Kp;
-	float vel_Ki;
-};
-
-enum idJM{
-	LF=11,
-	LR=12,
-	RF=14,
-	RR=13,
+enum indexJM {
+	LF = 0, LR = 1, RF = 3, RR = 2,
 };
 
 void HVHP(bool isEN);

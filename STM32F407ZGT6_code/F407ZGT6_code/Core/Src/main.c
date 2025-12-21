@@ -57,7 +57,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-information_t jointMotor[4];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -135,11 +135,7 @@ int main(void) {
 	MX_ADC2_Init();
 	MX_TIM3_Init();
 	/* USER CODE BEGIN 2 */
-	HVHP(1); //母线上电
-	CommCan_Init(&hcan1); //关节电机can1通信初始化
-	CommCan_Init(&hcan2); //关节电机can2通信初始化
-	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
-	//returnToOrigin(0.2, 0.2, 5000); //回原点
+	appSetup();
 
 	/* USER CODE END 2 */
 
@@ -159,7 +155,7 @@ int main(void) {
 		 CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
 		 //printf("a cycle\n");
 		 */
-		app();
+		appLoop();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

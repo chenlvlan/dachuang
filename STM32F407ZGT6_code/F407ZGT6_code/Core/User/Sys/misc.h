@@ -10,6 +10,10 @@
 
 #include "main.h"
 #include <stdbool.h>
+#include <math.h>
+#include "can.h"
+
+//extern CAN_HandleTypeDef hcan
 
 typedef struct {
 	//软件信息
@@ -47,16 +51,95 @@ typedef struct {
 	float torqueConst;	//(N*m)/A
 	uint8_t reduceRatio;
 
-} motorDataRead_t
+} motorDataRead_t;
+
+typedef struct {
+	CAN_RxHeaderTypeDef RxHead;     //can通信协议头
+	uint8_t canRxBuf[8];            //can通信接收到的数据包
+} CanRxMessage_t;
 
 enum idJM {
-	LF = 11, LR = 12, RF = 14, RR = 13,
+	idLF = 11, idLR = 12, idRF = 14, idRR = 13,
 };
 
 enum indexJM {
-	LF = 0, LR = 1, RF = 3, RR = 2,
+	indexLF = 0, indexLR = 1, indexRF = 3, indexRR = 2,
 };
 
-void HVHP(bool isEN);
+enum status {
+	off = 0,
+	volatgeControl = 1,
+	qAxisCurrentControl = 2,
+	velocityControl = 3,
+	positionControl = 4,
+	motorDisable = 0,
+};
+
+static inline float degToRad(float deg) {
+	return deg * M_PI / 180.0;
+}
+
+static inline float radToDeg(float rad) {
+	return rad * 180.0 / M_PI;
+}
+
+static inline float rpmToRadps(float rpm) {
+	return rpm * M_PI / 30.0;
+}
+
+static inline float radpsToRpm(float radps) {
+	return radps * 30.0 / M_PI;
+}
+
+//id为id的电机应该采用哪个can发送？
+static inline CAN_HandleTypeDef* idToHandle(uint8_t id) {
+	CAN_HandleTypeDef *HCAN;
+	if (id == idLF || id == idLR) {
+		HCAN = &hcan1;
+	} else if (id == idRF || id == idRR) {
+		HCAN = &hcan2;
+	}
+	return HCAN;
+}
+
+//电机id映射到数组index
+static inline uint8_t idToIndex(uint8_t id) {
+	uint8_t index = 0;
+	switch (id) {
+	case idLF:
+		index = indexLF;
+		break;
+	case idLR:
+		index = indexLR;
+		break;
+	case idRF:
+		index = indexRF;
+		break;
+	case idRR:
+		index = indexRR;
+		break;
+	}
+	return index;
+}
+
+//数组index映射到电机id
+static inline uint8_t indexToID(uint8_t index) {
+	uint8_t id = 0;
+	switch (index) {
+	case indexLF:
+		id = idLF;
+		break;
+	case indexLR:
+		id = idLR;
+		break;
+	case indexRF:
+		id = idRF;
+		break;
+	case indexRR:
+		id = idRR;
+		break;
+	}
+	return id;
+}
 
 #endif /* USER_COMM_STRUCT_H_ */

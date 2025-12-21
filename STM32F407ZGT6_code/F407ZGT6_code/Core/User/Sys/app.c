@@ -15,16 +15,21 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	//.......
 	//在执行回原点前，先安全地保存现场，完成准备工作
 
-	JM_SetPosVelModeMaxTorque(idLF, torque);//限制最大力矩
+	JM_SetPosVelModeMaxTorque(idLF, torque);	//限制最大力矩
 	JM_SetPosVelModeMaxTorque(idLR, torque);
 	JM_SetPosVelModeMaxTorque(idRF, torque);
 	JM_SetPosVelModeMaxTorque(idRR, torque);
 
-	JM_VelMode(idLF, speed);//进行归零动作
+	JM_VelMode(idLF, speed);	//进行归零动作
 	JM_VelMode(idLR, speed);
 	JM_VelMode(idRF, speed);
 	JM_VelMode(idRR, speed);
 
+	//float deltaPos[4][25];
+	//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
+	//了原点，时间一到直接设置当前为原点
+
+	/*
 	uint32_t startTime = HAL_GetTick(); //开始时间
 	while (HAL_GetTick() - startTime <= timeout) { //在超时时间以内的话
 		//这里面也跑着运动控制环
@@ -33,10 +38,25 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 
 		}
 	}
+	*/
+	HAL_Delay(timeout);
+	JM_PosRelaMode(idRF, 0.2);//右侧两个电机转至右边的腿分开
+	JM_PosRelaMode(idRR, 0.2);
+	HAL_Delay(500);
+	JM_Restart(idLF);//重启，读取新的位置
+	JM_Restart(idLR);
+	JM_Restart(idRF);
+	JM_Restart(idRR);
+	HAL_Delay(250);
+	JM_ReturnToOrigin(idLF);//转到原点，以展示回原点是否正确
+	JM_ReturnToOrigin(idLR);
+	JM_ReturnToOrigin(idRF);
+	JM_ReturnToOrigin(idRR);
 
 	//回原点完毕，安全地恢复现场
 	//........
 }
+
 
 void motionCtrlCycle() {
 	//运动控制环
@@ -69,7 +89,9 @@ void appSetup() {
 	refreshAll(idRR);
 
 	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
-	returnToOrigin(0.2, 0.2, 5000); //回原点
+
+	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
+	//returnToOrigin(0.2, 0.2, 5000); //回原点
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用

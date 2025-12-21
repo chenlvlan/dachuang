@@ -17,9 +17,10 @@ void JM_Disable(uint8_t id) {
 
 void JM_SetPosVelModeMaxTorque(uint8_t id, float torque) {
 	if (JMDataRead[idToIndex(id)].torqueConst == 0) { //力矩常数为0，那就现读
-		JM_GetMotorInfo(id, 1);//使用强制模式，因为这个时候力矩常数为0，其实已经是异常情况了
+		JM_GetMotorInfo(id, 1); //使用强制模式，因为这个时候力矩常数为0，其实已经是异常情况了
 	}
-	CommCan_SetPosVelCtrlMaxIq(idToHandle(id), id, (torque/JMDataRead[idToIndex(id)].torqueConst));
+	CommCan_SetPosVelCtrlMaxIq(idToHandle(id), id,
+			(torque / JMDataRead[idToIndex(id)].torqueConst));
 }
 
 void JM_GetSoftwareInfo(uint8_t id) {
@@ -33,12 +34,12 @@ void JM_GetRealTimeStatusInfo(uint8_t id) {
 void JM_GetMotorInfo(uint8_t id, bool forced) {
 	CommCan_GetMotorPara(idToHandle(id), id);
 	if (forced) {
-		bool safe = 0; //默认是异常的状态
+		//bool safe = 0; //默认是异常的状态
 		for (int i = 1; i < 1000; i++) {
 			HAL_Delay(1);
 			if (JMDataRead[idToIndex(id)].torqueConst != 0) {
 				//读到数了
-				safe = 1;
+				//safe = 1;
 				return;
 			}
 			if (i % 200 == 0) {
@@ -50,8 +51,35 @@ void JM_GetMotorInfo(uint8_t id, bool forced) {
 	}
 }
 
-void JM_VelMode(uint8_t id, float speed){
+void JM_VelMode(uint8_t id, float speed) {
 	CommCan_SetVelocity(idToHandle(id), id, radpsToRpm(speed));
+}
+
+void JM_PosRelaMode(uint8_t id, float position){
+	CommCan_SetRelateive_Count(idToHandle(id), id, (int32_t)position*16384/(2*M_PI));
+}
+
+void JM_PosAbsMode(uint8_t id, float position){
+	CommCan_SetAbsPosition_Count(idToHandle(id), id, (int32_t)position*16384/(2*M_PI));
+}
+
+void JM_GetTorque(uint8_t id) {
+	if (JMDataRead[idToIndex(id)].torqueConst == 0) { //力矩常数为0，那就现读
+		JM_GetMotorInfo(id, 1); //使用强制模式，因为这个时候力矩常数为0，其实已经是异常情况了
+	}
+	CommCan_GetIq(idToHandle(id), id);
+}
+
+void JM_GetPos(uint8_t id) {
+	CommCan_GetPosition(idToHandle(id), id);
+}
+
+void JM_Restart(uint8_t id){
+	CommCan_SysMotorRestart(idToHandle(id), id);
+}
+
+void JM_ReturnToOrigin(uint8_t id){
+	CommCan_ShortestHomePosition(idToHandle(id), id);
 }
 
 /* can总线数据的接收 */
@@ -348,6 +376,7 @@ void solveMotorCanRx(motorDataRead_t *motorDataRead) {
 		memcpy(&IqCurrentValue, &(CanRxMessage.canRxBuf[1]),
 				sizeof(IqCurrentValue));
 		motorDataRead->iq = IqCurrentValue * 0.001f;
+		motorDataRead->torque = motorDataRead->iq * motorDataRead->torqueConst;
 		if (isDebug) {
 			printf("Iq：%fA\r\n", motorDataRead->iq);
 		}

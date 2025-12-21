@@ -36,7 +36,8 @@ typedef struct {
 
 	//实时参数
 	float iq;	//A
-	float mechVel;	//Rad
+	float torque;
+	float mechVel;	//Rad/s
 	float singleAbsAngle;	//Rad
 	float multiAbsAngle;	//Rad
 	float busVolt;	//V

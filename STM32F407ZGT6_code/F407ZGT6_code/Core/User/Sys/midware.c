@@ -56,11 +56,11 @@ void JM_VelMode(uint8_t id, float speed) {
 }
 
 void JM_PosRelaMode(uint8_t id, float position){
-	CommCan_SetRelateive_Count(idToHandle(id), id, (int32_t)position*16384/(2*M_PI));
+	CommCan_SetRelateive_Count(idToHandle(id), id, position*16384/(2*M_PI));
 }
 
 void JM_PosAbsMode(uint8_t id, float position){
-	CommCan_SetAbsPosition_Count(idToHandle(id), id, (int32_t)position*16384/(2*M_PI));
+	CommCan_SetAbsPosition_Count(idToHandle(id), id, position*16384/(2*M_PI));
 }
 
 void JM_GetTorque(uint8_t id) {

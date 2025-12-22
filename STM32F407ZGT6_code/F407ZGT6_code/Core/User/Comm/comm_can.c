@@ -10,7 +10,6 @@
 //#define LIMIT_MIN_MAX(x,min,max) (x) = (((x)<=(min))?(min):(((x)>=(max))?(max):(x)))
 //这个用内联函数替换掉了，避免warning
 
-
 #define POS_MAX_Default     95.5f
 #define VEL_MAX_DEFAULT     45.0f
 #define T_MAX_DEFAULT       18.0f
@@ -68,7 +67,12 @@ void CommCan_Init(CAN_HandleTypeDef *hCan) {
 
 	CAN_FilterTypeDef filter;
 
-	filter.FilterBank = 0;                         // 使用过滤器 0
+	if (hCan->Instance == CAN1) {
+		filter.FilterBank = 0; // 使用过滤器 0
+	} else if (hCan->Instance == CAN2) {
+		filter.FilterBank = 14;
+	}
+
 	filter.FilterMode = CAN_FILTERMODE_IDLIST;     // 列表模式
 	filter.FilterScale = CAN_FILTERSCALE_16BIT;    // 每个Bank可以存四个ID
 	filter.FilterFIFOAssignment = CAN_FILTER_FIFO0;
@@ -79,6 +83,10 @@ void CommCan_Init(CAN_HandleTypeDef *hCan) {
 	filter.FilterIdLow = (12 << 5);
 	filter.FilterMaskIdHigh = (13 << 5);
 	filter.FilterMaskIdLow = (14 << 5);
+
+	if (hCan->Instance == CAN1) {
+		filter.SlaveStartFilterBank = 14;
+	}
 
 	// 设置过滤器
 	if (HAL_CAN_ConfigFilter(hCan, &filter) != HAL_OK) {

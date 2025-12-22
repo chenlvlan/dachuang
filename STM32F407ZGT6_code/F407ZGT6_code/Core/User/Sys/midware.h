@@ -12,6 +12,7 @@
 
 #include "../Comm/comm_can.h"
 #include "misc.h"
+#include "can.h"
 #include <stdbool.h>
 #include <main.h>
 #include <stdio.h>

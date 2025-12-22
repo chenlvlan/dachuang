@@ -142,20 +142,20 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		/*
-		 HAL_Delay(1000);
-		 CommCan_SetAbsPosition_Count(&hcan1, LF, 0);
-		 CommCan_SetAbsPosition_Count(&hcan1, LR, 0);
-		 CommCan_SetAbsPosition_Count(&hcan2, RF, 0);
-		 CommCan_SetAbsPosition_Count(&hcan2, RR, 0);
-		 HAL_Delay(1000);
-		 CommCan_SetAbsPosition_Count(&hcan1, LF, 1024);
-		 CommCan_SetAbsPosition_Count(&hcan1, LR, 1024);
-		 CommCan_SetAbsPosition_Count(&hcan2, RF, 1024);
-		 CommCan_SetAbsPosition_Count(&hcan2, RR, 1024);
-		 //printf("a cycle\n");
-		 */
-		appLoop();
+
+		HAL_Delay(1000);
+		CommCan_SetAbsPosition_Count(&hcan1, idLF, 0);
+		CommCan_SetAbsPosition_Count(&hcan1, idLR, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, idRF, 0);
+		CommCan_SetAbsPosition_Count(&hcan2, idRR, 0);
+		HAL_Delay(1000);
+		CommCan_SetAbsPosition_Count(&hcan1, idLF, 1024);
+		CommCan_SetAbsPosition_Count(&hcan1, idLR, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, idRF, 1024);
+		CommCan_SetAbsPosition_Count(&hcan2, idRR, 1024);
+		//printf("a cycle\n");
+
+		//appLoop();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */

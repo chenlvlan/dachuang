@@ -99,7 +99,7 @@ void CommCan_MotorRunCtrlMode_Control(CAN_HandleTypeDef *hCan,
 		uint32_t dev_addr, float pos_target, float vel_target,
 		float pos_gain_kp, float vel_gain_kd, float torque_target);
 
-void solveMotorCanRx(motorDataRead_t *motorDataRead);
-void getMotorCanRxID(uint8_t *id);
+//void solveMotorCanRx(motorDataRead_t *motorDataRead);
+//void getMotorCanRxID(uint8_t *id);
 
 #endif

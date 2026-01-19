@@ -3939,25 +3939,25 @@ uint8_t mpu6500_init(mpu6500_handle_t *handle)
     {
         handle->debug_print("mpu6500: iic_init is null.\n");                        /* iic_init is null */
        
-        return 3;                                                                   /* return error */
+        //return 3;                                                                   /* return error */
     }
     if (handle->iic_deinit == NULL)                                                 /* check iic_deinit */
     {
         handle->debug_print("mpu6500: iic_deinit is null.\n");                      /* iic_deinit is null */
        
-        return 3;                                                                   /* return error */
+        //return 3;                                                                   /* return error */
     }
     if (handle->iic_read == NULL)                                                   /* check iic_read */
     {
         handle->debug_print("mpu6500: iic_read is null.\n");                        /* iic_read is null */
        
-        return 3;                                                                   /* return error */
+        //return 3;                                                                   /* return error */
     }
     if (handle->iic_write == NULL)                                                  /* check iic_write */
     {
         handle->debug_print("mpu6500: iic_write is null.\n");                       /* iic_write is null */
        
-        return 3;                                                                   /* return error */
+        //return 3;                                                                   /* return error */
     }
     if (handle->spi_init == NULL)                                                   /* check spi_init */
     {
@@ -4025,6 +4025,7 @@ uint8_t mpu6500_init(mpu6500_handle_t *handle)
         
         return 5;                                                                   /* return error */
     }
+    //printf("%d",prev);
     if (prev != 0x70)                                                               /* check the id */
     {
         handle->debug_print("mpu6500: id is invalid.\n");                           /* id is invalid */

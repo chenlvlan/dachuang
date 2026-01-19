@@ -1,0 +1,211 @@
+// DengFOC V0.2
+// 灯哥开源，遵循GNU协议，转载请著名版权！
+// GNU开源协议（GNU General Public License, GPL）是一种自由软件许可协议，保障用户能够自由地使用、研究、分享和修改软件。
+// 该协议的主要特点是，要求任何修改或衍生的作品必须以相同的方式公开发布，即必须开源。此外，该协议也要求在使用或分发软件时，必须保留版权信息和许可协议。GNU开源协议是自由软件基金会（FSF）制定和维护的一种协议，常用于GNU计划的软件和其他自由软件中。
+// 仅在DengFOC官方硬件上测试过，欢迎硬件购买/支持作者，淘宝搜索店铺：灯哥开源
+// 你的支持将是接下来做视频和持续开源的经费，灯哥在这里先谢谢大家了
+
+#include "DengFOC.h"
+#include <Arduino.h>
+
+// #define CONFIG_DISABLE_HAL_LOCKS
+
+struct MotorCommand
+{
+	int mode;
+	float value;
+};
+
+const bool isDebug = 1;
+
+MotorCommand motor0;
+MotorCommand motor1;
+
+String inputString = "";	 // 用于存储接收到的指令
+bool stringComplete = false; // 是否收到完整指令
+
+void parseCommand(String cmd);
+
+void setup()
+{
+
+	Serial.begin(115200);					   // 调试串口
+	Serial1.begin(115200, SERIAL_8N1, 16, 17); // 通信串口
+	inputString.reserve(64);				   // 预分配内存
+
+	DFOC_enable(); // 放在校准前
+	DFOC_Vbus(24); // 设定驱动器供电电压
+	delay(1000);
+	DFOC_M0_alignSensor(11, -1);
+	DFOC_M1_alignSensor(11, -1);
+
+	DFOC_M0_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	DFOC_M0_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	DFOC_M0_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
+
+	DFOC_M1_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	DFOC_M1_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	DFOC_M1_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
+	// vTaskSuspendAll();
+	DFOC_disable(); // 默认禁用
+}
+
+int count = 0;
+void loop()
+{
+	runFOC();
+	if (motor0.mode == 0 || motor1.mode == 0) // 因为电路的原因，不可能单独禁用一个电机
+	{
+		DFOC_disable();
+	}
+	else
+	{
+		DFOC_enable();
+		switch (motor0.mode)
+		{
+		case 1:
+			// 速度模式
+			DFOC_M0_setVelocity(motor0.value);
+			break;
+		case 2:
+			// 力矩模式
+			DFOC_M0_setTorque(motor0.value);
+		default:
+			break;
+		}
+		switch (motor1.mode)
+		{
+		case 1:
+			// 速度模式
+			DFOC_M1_setVelocity(motor1.value);
+			break;
+		case 2:
+			// 力矩模式
+			DFOC_M0_setTorque(motor1.value);
+		default:
+			break;
+		}
+	}
+	// DFOC_M0_setTorque(1);
+	// DFOC_M1_setTorque(1);
+
+	// 力位（加入电流环后）
+	//  DFOC_M0_SET_ANGLE_PID(0.5,0,0.003,100000,0.1);
+	//  DFOC_M0_SET_CURRENT_PID(1.25,50,0,100000);
+	//  DFOC_M0_set_Force_Angle(serial_motor_target());
+	//  DFOC_M1_SET_ANGLE_PID(0.5,0,0.003,100000,0.1);
+	//  DFOC_M1_SET_CURRENT_PID(1.25,50,0,100000);
+	//  DFOC_M1_set_Force_Angle(serial_motor_target());
+
+	// 速度（加入电流环后）
+	// DFOC_M0_SET_VEL_PID(1, 2, 0, 100000, 0.5);
+	// DFOC_M0_SET_CURRENT_PID(0.5, 50, 0, 100000);
+	// DFOC_M0_setVelocity(motor0.value);
+	// DFOC_M1_SET_VEL_PID(1, 2, 0, 100000, 0.5);
+	// DFOC_M1_SET_CURRENT_PID(0.5, 50, 0, 100000);
+	// DFOC_M1_setVelocity(motor1.value);
+
+	// //位置-速度-力（加入电流环后）
+	// DFOC_M0_SET_ANGLE_PID(1, 0, 0, 100000, 30);
+	// DFOC_M0_SET_VEL_PID(0.02, 1, 0, 100000, 0.5);
+	// DFOC_M0_SET_CURRENT_PID(5, 200, 0, 100000);
+	// DFOC_M0_set_Velocity_Angle(serial_motor_target());
+
+	// //位置-速度-力（加入电流环后）
+	// DFOC_M1_SET_ANGLE_PID(1, 0, 0, 100000, 30);
+	// DFOC_M1_SET_VEL_PID(0.02, 1, 0, 100000, 0.5);
+	// DFOC_M1_SET_CURRENT_PID(5, 200, 0, 100000);
+	// DFOC_M1_set_Velocity_Angle(serial_motor_target());
+	// 电流力矩
+	// DFOC_M1_SET_CURRENT_PID(5, 200, 0, 100000);
+	// DFOC_M0_SET_CURRENT_PID(5, 200, 0, 100000);
+
+	// DFOC_M0_setTorque(serial_motor_target());
+	// DFOC_M1_setTorque(serial_motor_target());
+
+	if (isDebug)
+	{
+		count++;
+		if (count > 100)
+		{
+			count = 0;
+			// Serial.println(inputString);
+			//  Serial.printf("%f\n", DFOC_M0_Current());
+			//  Serial.printf("%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\n", DFOC_M0_Current(), DFOC_M1_Current(), DFOC_M0_Angle(), DFOC_M0_Velocity(), DFOC_M1_Angle(), DFOC_M1_Velocity());
+			//  Serial.printf("%f,%f,%f\n", DFOC_M0_Angle(), S0_electricalAngle(),S1_electricalAngle());
+			//  Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
+		}
+	}
+
+	// 串口接收处理
+	while (Serial1.available())
+	{
+		char inChar = (char)Serial1.read();
+
+		if (inChar == '\0')
+		{
+			continue; // ⭐⭐⭐ 关键
+		}
+		if (inChar == '\n')
+		{
+			stringComplete = true;
+		}
+		else if (inChar != '\r')
+		{
+			inputString += inChar;
+		}
+	}
+
+	// 如果接收到完整指令
+	if (stringComplete)
+	{
+		parseCommand(inputString);
+		inputString = "";
+		stringComplete = false;
+	}
+}
+
+void parseCommand(String cmd)
+{
+	// 分割字符串
+	cmd.trim();
+	// Serial.print("\"");
+	if (isDebug)
+		Serial.println(cmd);
+	// Serial.println("\"");
+	int firstComma = cmd.indexOf(',');
+	int secondComma = cmd.indexOf(',', firstComma + 1);
+	int thirdComma = cmd.indexOf(',', secondComma + 1);
+
+	if (firstComma == -1 || secondComma == -1 || thirdComma == -1)
+	{
+		if (isDebug)
+			Serial.println("command format error");
+		return;
+	}
+
+	String m0ModeStr = cmd.substring(0, firstComma);
+	String m0ValueStr = cmd.substring(firstComma + 1, secondComma);
+	String m1ModeStr = cmd.substring(secondComma + 1, thirdComma);
+	String m1ValueStr = cmd.substring(thirdComma + 1);
+
+	motor0.mode = m0ModeStr.toInt();
+	motor0.value = m0ValueStr.toFloat();
+
+	motor1.mode = m1ModeStr.toInt();
+	motor1.value = m1ValueStr.toFloat();
+
+	// 输出解析结果
+	if (isDebug)
+	{
+		Serial.print("Motor0 - Mode: ");
+		Serial.print(motor0.mode);
+		Serial.print(", Value: ");
+		Serial.println(motor0.value, 2); // 保留两位小数
+
+		Serial.print("Motor1 - Mode: ");
+		Serial.print(motor1.mode);
+		Serial.print(", Value: ");
+		Serial.println(motor1.value, 2); // 保留两位小数
+	}
+}

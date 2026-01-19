@@ -11,6 +11,8 @@
 #include "main.h"
 #include "midware.h"
 #include "misc.h"
+#include "../MPU6500/driver_mpu6500.h"
+#include "../MPU6500/driver_mpu6500_interface.h"
 #include <stdbool.h>
 
 extern bool doMotionCtrlCycle;

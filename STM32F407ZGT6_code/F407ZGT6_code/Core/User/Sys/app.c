@@ -115,12 +115,15 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	JM_Restart(idLR);
 	JM_Restart(idRF);
 	JM_Restart(idRR);
-	HAL_Delay(250);
+	HAL_Delay(100);//必须加延时，不然RR电机无法回零
 	JM_ReturnToOrigin(idLF);	//转到原点，以展示回原点是否正确
+	HAL_Delay(100);
 	JM_ReturnToOrigin(idLR);
+	HAL_Delay(100);
 	JM_ReturnToOrigin(idRF);
+	HAL_Delay(100);
 	JM_ReturnToOrigin(idRR);
-
+	HAL_Delay(100);
 	//回原点完毕，安全地恢复现场
 	//........
 }
@@ -137,7 +140,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void MPU6500_SPIInit() {
+static void MPU6500_SPIInit() {
 	//--------------------------------------------------------------
 	uint8_t res;
 	/* link interface functions */

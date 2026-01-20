@@ -103,17 +103,17 @@ void appLoop() {
 	 }
 	 }
 	 */
-	//if (mpu_dmp_int) {
-	//printf("\r\n1\r\n");
-	mpu_dmp_int = 0;
-	dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
-	//mpu6500_force_fifo_reset(&g_mpu6500);
-	//printf("2\r\n");
-	//}
+	if (mpu_dmp_int) {
+		//printf("\r\n1\r\n");
+		mpu_dmp_int = 0;
+		dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
+		//mpu6500_force_fifo_reset(&g_mpu6500);
+		//printf("2\r\n");
+	}
 	//printf("a cycle\r\n");
 	//printf("loop end  ");
 //----------------------------------------------------------------------------
-	HAL_Delay(g_loop_delay_ms);
+	//HAL_Delay(g_loop_delay_ms);
 
 	//unsigned char msg[] = "1,10.0,1,-10.0\n";
 	//HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
@@ -194,18 +194,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-/*
- void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
- if (GPIO_Pin == MPU6500_INT_PIN) {
- printf("INT triggered\n");
- uint8_t status;
- int d = 0;
- d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
- //printf("mpu6500_get_interrupt_status = %d", d);
- mpu_dmp_int = 1;
- }
- }
- */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == MPU6500_INT_PIN) {
+		//printf("INT triggered\n");
+		//int d = 0;
+		//d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
+		//printf("mpu6500_get_interrupt_status = %d", d);
+		uint8_t status;
+		mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
+
+		printf("INT_STATUS = 0x%02X\r\n", status);
+		mpu_dmp_int = 1;
+	}
+}
+
 void MPU6500_SPIInit() {
 	/*
 	 //--------------------------------------------------------------
@@ -274,7 +276,7 @@ void MPU6500_SPIInit() {
 		printf("DMP init failed\n");
 		Error_Handler();
 	}
-	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 200); // 50Hz 而不是 200Hz
+	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 50); // 50Hz 而不是 200Hz
 	//printf("mpu6500_dmp_set_fifo_rate = %d\r\n", c);
 	//mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
 	//mpu6500_set_interrupt_data_ready(&g_mpu6500, MPU6500_BOOL_TRUE);
@@ -286,6 +288,20 @@ void MPU6500_SPIInit() {
 	//printf("mpu6500_dmp_set_enable = %d\r\n", c);
 	//HAL_Delay(500);
 	//printf("inited = %d, dmp_inited = %d\r\n", g_mpu6500.inited, g_mpu6500.dmp_inited);
+	//------------以下为新加的------------
+	uint8_t tmp;
+
+	/* 清一遍中断 */
+	mpu6500_get_reg(&g_mpu6500, 0x3A, &tmp, 1);
+
+	/* INT：Data Ready */
+	tmp = 0x01;
+	mpu6500_set_reg(&g_mpu6500, 0x38, &tmp, 1);
+
+	/* INT 为高电平有效，推挽 */
+	tmp = 0x00;
+	mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
+	//------------以上为新加的------------
 
 }
 

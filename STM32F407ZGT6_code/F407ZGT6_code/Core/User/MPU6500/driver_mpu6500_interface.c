@@ -135,43 +135,43 @@ uint8_t mpu6500_interface_spi_deinit(void) {
  * @note       none
  */
 uint8_t mpu6500_interface_spi_read(uint8_t reg, uint8_t *buf, uint16_t len) {
-
-	uint8_t addr = reg | 0x80;
-
-	MPU6500_CS_LOW();
-
-	if (HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY) != HAL_OK) {
-		MPU6500_CS_HIGH();
-		return 1;
-	}
-
-	if (HAL_SPI_Receive(&hspi1, buf, len, HAL_MAX_DELAY) != HAL_OK) {
-		MPU6500_CS_HIGH();
-		return 1;
-	}
-
-	MPU6500_CS_HIGH();
-	return 0;
-
 	/*
-	 uint8_t tx[len + 1];
-	 uint8_t rx[len + 1];
-
-	 tx[0] = reg | 0x80;       // 读命令
-	 memset(tx + 1, 0xFF, len); // dummy bytes
+	 uint8_t addr = reg | 0x80;
 
 	 MPU6500_CS_LOW();
-	 if (HAL_SPI_TransmitReceive(&hspi1, tx, rx, len + 1, HAL_MAX_DELAY)
-	 != HAL_OK) {
+
+	 if (HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY) != HAL_OK) {
 	 MPU6500_CS_HIGH();
-	 printf("SPI read failed at reg 0x%02X\n", reg);
 	 return 1;
 	 }
-	 MPU6500_CS_HIGH();
 
-	 memcpy(buf, rx + 1, len);
+	 if (HAL_SPI_Receive(&hspi1, buf, len, HAL_MAX_DELAY) != HAL_OK) {
+	 MPU6500_CS_HIGH();
+	 return 1;
+	 }
+
+	 MPU6500_CS_HIGH();
 	 return 0;
 	 */
+
+	uint8_t tx[len + 1];
+	uint8_t rx[len + 1];
+
+	tx[0] = reg | 0x80;       // 读命令
+	memset(tx + 1, 0xFF, len); // dummy bytes
+
+	MPU6500_CS_LOW();
+	if (HAL_SPI_TransmitReceive(&hspi1, tx, rx, len + 1, HAL_MAX_DELAY)
+			!= HAL_OK) {
+		MPU6500_CS_HIGH();
+		printf("SPI read failed at reg 0x%02X\n", reg);
+		return 1;
+	}
+	MPU6500_CS_HIGH();
+
+	memcpy(buf, rx + 1, len);
+	return 0;
+
 }
 
 /**
@@ -185,38 +185,38 @@ uint8_t mpu6500_interface_spi_read(uint8_t reg, uint8_t *buf, uint16_t len) {
  * @note      none
  */
 uint8_t mpu6500_interface_spi_write(uint8_t reg, uint8_t *buf, uint16_t len) {
-
-	uint8_t addr = reg & 0x7F;
-
-	MPU6500_CS_LOW();
-
-	if (HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY) != HAL_OK) {
-		MPU6500_CS_HIGH();
-		return 1;
-	}
-
-	if (HAL_SPI_Transmit(&hspi1, buf, len, HAL_MAX_DELAY) != HAL_OK) {
-		MPU6500_CS_HIGH();
-		return 1;
-	}
-
-	MPU6500_CS_HIGH();
-	return 0;
 	/*
-	 uint8_t tx[len + 1];
-	 tx[0] = reg & 0x7F;
-	 memcpy(tx + 1, buf, len);
+	 uint8_t addr = reg & 0x7F;
 
 	 MPU6500_CS_LOW();
-	 if (HAL_SPI_Transmit(&hspi1, tx, len + 1, HAL_MAX_DELAY) != HAL_OK) {
+
+	 if (HAL_SPI_Transmit(&hspi1, &addr, 1, HAL_MAX_DELAY) != HAL_OK) {
 	 MPU6500_CS_HIGH();
-	 printf("SPI write failed at reg 0x%02X\n", reg);
 	 return 1;
 	 }
-	 MPU6500_CS_HIGH();
 
+	 if (HAL_SPI_Transmit(&hspi1, buf, len, HAL_MAX_DELAY) != HAL_OK) {
+	 MPU6500_CS_HIGH();
+	 return 1;
+	 }
+
+	 MPU6500_CS_HIGH();
 	 return 0;
 	 */
+	uint8_t tx[len + 1];
+	tx[0] = reg & 0x7F;
+	memcpy(tx + 1, buf, len);
+
+	MPU6500_CS_LOW();
+	if (HAL_SPI_Transmit(&hspi1, tx, len + 1, HAL_MAX_DELAY) != HAL_OK) {
+		MPU6500_CS_HIGH();
+		printf("SPI write failed at reg 0x%02X\n", reg);
+		return 1;
+	}
+	MPU6500_CS_HIGH();
+
+	return 0;
+
 }
 
 /**

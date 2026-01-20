@@ -13,6 +13,7 @@
 #include "misc.h"
 #include "../MPU6500/driver_mpu6500.h"
 #include "../MPU6500/driver_mpu6500_interface.h"
+#include "../MPU6500/driver_mpu6500_dmp.h"
 #include <stdbool.h>
 
 #define MPU6500_INT_PIN GPIO_PIN_3
@@ -30,9 +31,13 @@ void returnToOrigin(float speed, float torque, uint32_t timeout);
 void appLoop();
 void appSetup();
 void motionCtrlCycle();
-static void MPU6500_SPIInit();
+
+void MPU6500_SPIInit();
+void dmp_print_once();
+//void mpu_receive_callback(uint8_t type);
+//void mpu_tap_callback(uint8_t count, uint8_t dir);
+//void mpu_orient_callback(uint8_t orientation);
 
 void refreshAll(uint8_t id);
-
 
 #endif /* USER_SYS_APP_H_ */

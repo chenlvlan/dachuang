@@ -13,18 +13,19 @@ bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 static mpu6500_handle_t g_mpu6500;
 //----------------------------------------
-int16_t accel_raw[1][3];
-int16_t gyro_raw[1][3];
-float accel_g[1][3];
-float gyro_dps[1][3];
-uint16_t len = 1;
+//int16_t accel_raw[1][3];
+//int16_t gyro_raw[1][3];
+//float accel_g[1][3];
+//float gyro_dps[1][3];
+//uint16_t len = 1;
 volatile uint8_t mpu_dmp_int = 0;
-int32_t quat[4];
-float pitch, roll, yaw;
+//int32_t quat[4];
+//float pitch, roll, yaw;
 //------------------------------------------
 
 void appSetup() {
 	HVHP(1); //母线上电
+	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	MPU6500_SPIInit();
 	//HAL_Delay(150); //等待供电稳定
 	CommCan_Init(&hcan1); //关节电机can1通信初始化
@@ -45,6 +46,7 @@ void appSetup() {
 }
 
 void appLoop() {
+	//printf("loop begin  ");
 	//这个是主程序
 	if (doMotionCtrlCycle == 1) {
 		doMotionCtrlCycle = 0;
@@ -59,44 +61,53 @@ void appLoop() {
 	 accel_g[1][2]);
 	 printf("GYR: \t%f\t%f\t%f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
 	 gyro_dps[1][2]);
+
+	 if (mpu_dmp_int) {
+	 mpu_dmp_int = 0;
+	 if (mpu6500_dmp_read(&g_mpu6500, &accel_raw[1], &accel_g[1],
+	 &gyro_raw[1], &gyro_dps[1], &quat, &pitch, &roll, &yaw, &len)
+	 == 0) {
+	 float q0 = quat[0] / 1073741824.0f;
+	 float q1 = quat[1] / 1073741824.0f;
+	 float q2 = quat[2] / 1073741824.0f;
+	 float q3 = quat[3] / 1073741824.0f;
+	 // 打印或用来调试
+	 float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+
+	 printf("=== DMP DATA ===\r\n");
+	 printf("ACC_RAW : %6d %6d %6d\r\n", accel_raw[0][0],
+	 accel_raw[0][1], accel_raw[0][2]);
+	 printf("ACC_G   : %6.3f %6.3f %6.3f g\r\n", accel_g[0][0],
+	 accel_g[0][1], accel_g[0][2]);
+
+	 printf("GYRO_RAW: %6d %6d %6d\r\n", gyro_raw[0][0], gyro_raw[0][1],
+	 gyro_raw[0][2]);
+	 printf("GYRO_DPS: %6.2f %6.2f %6.2f dps\r\n", gyro_dps[0][0],
+	 gyro_dps[0][1], gyro_dps[0][1]);
+
+	 printf("QUAT    : %+.4f %+.4f %+.4f %+.4f\r\n", q0, q1, q2, q3);
+	 printf("|Q|     : %.6f\r\n", q_norm);
+
+	 printf("RPY(deg): R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+	 printf("----------------\r\n");
+
+	 }
+	 }
 	 */
-	if (mpu_dmp_int) {
+	//if (mpu_dmp_int) {
+		//printf("\r\n1\r\n");
 		mpu_dmp_int = 0;
-		if (mpu6500_dmp_read(&g_mpu6500, &accel_raw[1], &accel_g[1],
-				&gyro_raw[1], &gyro_dps[1], &quat, &pitch, &roll, &yaw, &len)
-				== 0) {
-			float q0 = quat[0] / 1073741824.0f;
-			float q1 = quat[1] / 1073741824.0f;
-			float q2 = quat[2] / 1073741824.0f;
-			float q3 = quat[3] / 1073741824.0f;
-			// 打印或用来调试
-			float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-
-			printf("=== DMP DATA ===\r\n");
-			printf("ACC_RAW : %6d %6d %6d\r\n", accel_raw[0][0],
-					accel_raw[0][1], accel_raw[0][2]);
-			printf("ACC_G   : %6.3f %6.3f %6.3f g\r\n", accel_g[0][0],
-					accel_g[0][1], accel_g[0][2]);
-
-			printf("GYRO_RAW: %6d %6d %6d\r\n", gyro_raw[0][0], gyro_raw[0][1],
-					gyro_raw[0][2]);
-			printf("GYRO_DPS: %6.2f %6.2f %6.2f dps\r\n", gyro_dps[0][0],
-					gyro_dps[0][1], gyro_dps[0][1]);
-
-			printf("QUAT    : %+.4f %+.4f %+.4f %+.4f\r\n", q0, q1, q2, q3);
-			printf("|Q|     : %.6f\r\n", q_norm);
-
-			printf("RPY(deg): R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-			printf("----------------\r\n");
-
-		}
-	}
-
+		dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
+		//mpu6500_force_fifo_reset(&g_mpu6500);
+		//printf("2\r\n");
+	//}
+	//printf("a cycle\r\n");
+	//printf("loop end  ");
 //----------------------------------------------------------------------------
-	HAL_Delay(500);
+	HAL_Delay(1);
 
-	unsigned char msg[] = "1,10.0,1,-10.0\n";
-	HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
+	//unsigned char msg[] = "1,10.0,1,-10.0\n";
+	//HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
 //printf("111\n");
 }
 
@@ -176,25 +187,31 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == MPU6500_INT_PIN) {
+		printf("INT triggered\n");
+		uint8_t status;
+		int d = 0;
+		d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
+		//printf("mpu6500_get_interrupt_status = %d", d);
 		mpu_dmp_int = 1;
 	}
 }
 
-static void MPU6500_SPIInit() {
-//--------------------------------------------------------------
-	uint8_t res;
-	/* link interface functions */
-	DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
-	DRIVER_MPU6500_LINK_SPI_INIT(&g_mpu6500, mpu6500_interface_spi_init);
-	DRIVER_MPU6500_LINK_SPI_DEINIT(&g_mpu6500, mpu6500_interface_spi_deinit);
-	DRIVER_MPU6500_LINK_SPI_READ(&g_mpu6500, mpu6500_interface_spi_read);
-	DRIVER_MPU6500_LINK_SPI_WRITE(&g_mpu6500, mpu6500_interface_spi_write);
-	DRIVER_MPU6500_LINK_DELAY_MS(&g_mpu6500, mpu6500_interface_delay_ms);
-	DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
-	DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
-			mpu6500_interface_receive_callback);
-	g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
+void MPU6500_SPIInit() {
 	/*
+	 //--------------------------------------------------------------
+
+	 uint8_t res;
+	 DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
+	 DRIVER_MPU6500_LINK_SPI_INIT(&g_mpu6500, mpu6500_interface_spi_init);
+	 DRIVER_MPU6500_LINK_SPI_DEINIT(&g_mpu6500, mpu6500_interface_spi_deinit);
+	 DRIVER_MPU6500_LINK_SPI_READ(&g_mpu6500, mpu6500_interface_spi_read);
+	 DRIVER_MPU6500_LINK_SPI_WRITE(&g_mpu6500, mpu6500_interface_spi_write);
+	 DRIVER_MPU6500_LINK_DELAY_MS(&g_mpu6500, mpu6500_interface_delay_ms);
+	 DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
+	 DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
+	 mpu6500_interface_receive_callback);
+	 g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
+
 	 res = mpu6500_init(&g_mpu6500);
 
 	 if (mpu6500_dmp_load_firmware(&g_mpu6500) != 0) {
@@ -208,15 +225,106 @@ static void MPU6500_SPIInit() {
 	 printf("mpu6500 init failed\r\n");
 	 Error_Handler();
 	 }
+
+	 res = mpu6500_dmp_init(&g_mpu6500);
+	 if (res != 0)
+	 {
+	 printf("mpu6500 dmp init failed\r\n");
+	 Error_Handler();
+	 }
+	 mpu6500_set_accelerometer_range(&g_mpu6500, MPU6500_ACCELEROMETER_RANGE_2G);
+	 mpu6500_set_gyroscope_range(&g_mpu6500, MPU6500_GYROSCOPE_RANGE_2000DPS);
+	 mpu6500_set_sample_rate_divider(&g_mpu6500, (uint8_t) 1000);   // 1 kHz
+	 //-------------------------------------------------------------------------
 	 */
-	res = mpu6500_dmp_init(&g_mpu6500);
-	if (res != 0)
-	{
-	    printf("mpu6500 dmp init failed\r\n");
-	    Error_Handler();
+	/*
+	 // 绑定接口
+	 DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
+	 DRIVER_MPU6500_LINK_SPI_INIT(&g_mpu6500, mpu6500_interface_spi_init);
+	 DRIVER_MPU6500_LINK_SPI_DEINIT(&g_mpu6500, mpu6500_interface_spi_deinit);
+	 DRIVER_MPU6500_LINK_SPI_READ(&g_mpu6500, mpu6500_interface_spi_read);
+	 DRIVER_MPU6500_LINK_SPI_WRITE(&g_mpu6500, mpu6500_interface_spi_write);
+	 DRIVER_MPU6500_LINK_DELAY_MS(&g_mpu6500, mpu6500_interface_delay_ms);
+	 DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
+	 DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
+	 mpu6500_interface_receive_callback);
+	 g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
+
+	 // **必须先初始化 handle**
+	 if (mpu6500_init(&g_mpu6500) != 0) {
+	 printf("mpu6500 init failed\n");
+	 Error_Handler();
+	 }
+	 */
+	mpu6500_interface_t interface = MPU6500_INTERFACE_SPI;
+	mpu6500_address_t addr_pin = MPU6500_ADDRESS_AD0_HIGH; // 取决于 CS 接法
+
+	if (mpu6500_dmp_init(&g_mpu6500, interface, addr_pin, NULL,
+	NULL, NULL) != 0) {
+		printf("DMP init failed\n");
+		Error_Handler();
 	}
-	mpu6500_set_accelerometer_range(&g_mpu6500, MPU6500_ACCELEROMETER_RANGE_2G);
-	mpu6500_set_gyroscope_range(&g_mpu6500, MPU6500_GYROSCOPE_RANGE_2000DPS);
-	mpu6500_set_sample_rate_divider(&g_mpu6500, (uint8_t) 1000);   // 1 kHz
-//-------------------------------------------------------------------------
+	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 200); // 50Hz 而不是 200Hz
+	//printf("mpu6500_dmp_set_fifo_rate = %d\r\n", c);
+	//mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
+	//mpu6500_set_interrupt_data_ready(&g_mpu6500, MPU6500_BOOL_TRUE);
+	//mpu6500_set_interrupt(&g_mpu6500, MPU6500_INTERRUPT_DATA_READY, MPU6500_BOOL_TRUE);
+	//mpu6500_set_interrupt_latch(&g_mpu6500, MPU6500_BOOL_FALSE);      // 50µs 脉冲模式
+	//mpu6500_set_interrupt_read_clear(&g_mpu6500, MPU6500_BOOL_TRUE);  // 读状态清除中断
+	//mpu6500_set_interrupt_latch(&g_mpu6500, MPU6500_BOOL_FALSE);
+
+	//printf("mpu6500_dmp_set_enable = %d\r\n", c);
+	//HAL_Delay(500);
+	//printf("inited = %d, dmp_inited = %d\r\n", g_mpu6500.inited, g_mpu6500.dmp_inited);
+
 }
+
+/* 四元数打印函数 */
+void dmp_print_once() {
+	int16_t accel_raw[32][3];
+	float accel_g[32][3];
+	int16_t gyro_raw[32][3];
+	float gyro_dps[32][3];
+	int32_t quat[32][4];
+	float pitch, roll, yaw;
+	uint16_t len = 32;
+
+	int tmp = 0;
+
+	tmp = mpu6500_dmp_read(&g_mpu6500, accel_raw, accel_g, gyro_raw, gyro_dps,
+			quat, &pitch, &roll, &yaw, &len);
+	//tmp = mpu6500_dmp_read_all(&g_mpu6500, accel_raw, accel_g, gyro_raw, gyro_dps, &quat, &pitch, &roll, &yaw, len);
+	//printf("inited = %d, dmp_inited = %d\r\n", g_mpu6500.inited, g_mpu6500.dmp_inited);
+	if (tmp != 0) {
+		printf("DMP read failed, error code %d\r\n", tmp);
+		mpu6500_force_fifo_reset(&g_mpu6500);
+		//printf("mpu6500_force_fifo_reset = %d\r\n", b);
+		return;
+	}
+
+	float q0 = quat[31][0] / 1073741824.0f;
+	float q1 = quat[31][1] / 1073741824.0f;
+	float q2 = quat[31][2] / 1073741824.0f;
+	float q3 = quat[31][3] / 1073741824.0f;
+	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+
+	printf("QUAT: %+.4f %+.4f %+.4f %+.4f |Q|: %.6f\r\n", q0, q1, q2, q3,
+			q_norm);
+	printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+}
+/*
+ void mpu_receive_callback(uint8_t type) {
+ mpu_dmp_int = 1;
+ printf("mpu_receive_callback triggered\n");
+ }
+
+ void mpu_tap_callback(uint8_t count, uint8_t dir) {
+ (void) count;
+ (void) dir;
+ }
+
+ //orientation 回调（空函数
+void mpu_orient_callback(uint8_t orientation) {
+	(void) orientation;
+}
+*/

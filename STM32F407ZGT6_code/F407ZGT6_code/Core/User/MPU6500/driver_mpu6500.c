@@ -3893,9 +3893,9 @@ uint8_t mpu6500_init(mpu6500_handle_t *handle) {
 	}
 	if (handle->receive_callback == NULL) /* check receive_callback */
 	{
-		handle->debug_print("mpu6500: receive_callback is null.\n"); /* receive_callback is null */
+		//handle->debug_print("mpu6500: receive_callback is null.\n"); /* receive_callback is null */
 
-		return 3; /* return error */
+		//return 3; /* return error */
 	}
 
 	if (handle->iic_spi == MPU6500_INTERFACE_IIC) /* if iic interface */

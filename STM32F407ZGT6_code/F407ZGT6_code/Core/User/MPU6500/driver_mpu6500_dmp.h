@@ -40,7 +40,7 @@
 #include "driver_mpu6500_interface.h"
 
 #ifdef __cplusplus
-extern "C"{
+extern "C" {
 #endif
 
 /**
@@ -106,7 +106,7 @@ extern "C"{
  *         - 1 run failed
  * @note   none
  */
-uint8_t mpu6500_dmp_irq_handler(void);
+uint8_t mpu6500_dmp_irq_handler(mpu6500_handle_t *gs_handle);
 
 /**
  * @brief     dmp example init
@@ -120,11 +120,11 @@ uint8_t mpu6500_dmp_irq_handler(void);
  *            - 1 init failed
  * @note      none
  */
-uint8_t mpu6500_dmp_init(mpu6500_interface_t interface, mpu6500_address_t addr_pin,
-                         void (*receive_callback)(uint8_t type),
-                         void (*tap_callback)(uint8_t count, uint8_t direction),
-                         void (*orient_callback)(uint8_t orientation)
-                        );
+uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
+		mpu6500_interface_t interface, mpu6500_address_t addr_pin,
+		void (*receive_callback)(uint8_t type),
+		void (*tap_callback)(uint8_t count, uint8_t direction),
+		void (*orient_callback)(uint8_t orientation));
 
 /**
  * @brief  dmp example deinit
@@ -133,7 +133,7 @@ uint8_t mpu6500_dmp_init(mpu6500_interface_t interface, mpu6500_address_t addr_p
  *         - 1 deinit failed
  * @note   none
  */
-uint8_t mpu6500_dmp_deinit(void);
+uint8_t mpu6500_dmp_deinit(mpu6500_handle_t *gs_handle);
 
 /**
  * @brief         dmp example read
@@ -151,12 +151,10 @@ uint8_t mpu6500_dmp_deinit(void);
  *                - 1 read failed
  * @note          none
  */
-uint8_t mpu6500_dmp_read_all(int16_t (*accel_raw)[3], float (*accel_g)[3],
-                             int16_t (*gyro_raw)[3], float (*gyro_dps)[3],
-                             int32_t (*quat)[4],
-                             float *pitch, float *roll, float *yaw,
-                             uint16_t *l
-                            );
+uint8_t mpu6500_dmp_read_all(mpu6500_handle_t *gs_handle,
+		int16_t (*accel_raw)[3], float (*accel_g)[3], int16_t (*gyro_raw)[3],
+		float (*gyro_dps)[3], int32_t (*quat)[4], float *pitch, float *roll,
+		float *yaw, uint16_t *l);
 
 /**
  * @brief      dmp example get pedometer counter
@@ -166,7 +164,8 @@ uint8_t mpu6500_dmp_read_all(int16_t (*accel_raw)[3], float (*accel_g)[3],
  *             - 1 get pedometer counter failed
  * @note       none
  */
-uint8_t mpu6500_dmp_get_pedometer_counter(uint32_t *cnt);
+uint8_t mpu6500_dmp_get_pedometer_counter(mpu6500_handle_t *gs_handle,
+		uint32_t *cnt);
 
 /**
  * @}

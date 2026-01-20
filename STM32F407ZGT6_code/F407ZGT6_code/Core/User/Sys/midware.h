@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#define isDebug 1
+#define isDebug 0
 //正常运行模式，不打印调试信息为0，打印调试信息为1
 
 extern motorDataRead_t JMDataRead[4];

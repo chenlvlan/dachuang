@@ -15,6 +15,8 @@
 #include "../MPU6500/driver_mpu6500_interface.h"
 #include <stdbool.h>
 
+#define MPU6500_INT_PIN GPIO_PIN_3
+
 extern bool doMotionCtrlCycle;
 extern UART_HandleTypeDef huart4;
 extern motorDataRead_t JMDataRead[4];

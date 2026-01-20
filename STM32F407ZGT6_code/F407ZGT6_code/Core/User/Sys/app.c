@@ -18,12 +18,15 @@ int16_t gyro_raw[1][3];
 float accel_g[1][3];
 float gyro_dps[1][3];
 uint16_t len = 1;
+volatile uint8_t mpu_dmp_int = 0;
+int32_t quat[4];
+float pitch, roll, yaw;
 //------------------------------------------
 
 void appSetup() {
 	HVHP(1); //母线上电
-
-	HAL_Delay(150); //等待供电稳定
+	MPU6500_SPIInit();
+	//HAL_Delay(150); //等待供电稳定
 	CommCan_Init(&hcan1); //关节电机can1通信初始化
 	CommCan_Init(&hcan2); //关节电机can2通信初始化
 	HAL_Delay(100);
@@ -38,7 +41,6 @@ void appSetup() {
 
 	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
 	returnToOrigin(0.3, 0.2, 3000); //回原点
-	MPU6500_SPIInit();
 
 }
 
@@ -49,21 +51,53 @@ void appLoop() {
 		motionCtrlCycle();
 	}
 	//-----------------------------------------------------
-	//mpu6500_read_acceleration(&g_mpu6500, accel_raw, accel_g);
-	//mpu6500_read_gyroscope(&g_mpu6500, gyro_raw, gyro_dps);
-	mpu6500_read(&g_mpu6500, &accel_raw[1], &accel_g[1], &gyro_raw[1],
-			&gyro_dps[1], &len);
+	/*
+	 mpu6500_read(&g_mpu6500, &accel_raw[1], &accel_g[1], &gyro_raw[1],
+	 &gyro_dps[1], &len);
 
-	printf("ACC: \t%f\t%f\t%f g\r\n", accel_g[1][0], accel_g[1][1],
-			accel_g[1][2]);
-	printf("GYR: \t%f\t%f\t%f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
-			gyro_dps[1][2]);
-	//----------------------------------------------------------------------------
+	 printf("ACC: \t%f\t%f\t%f g\r\n", accel_g[1][0], accel_g[1][1],
+	 accel_g[1][2]);
+	 printf("GYR: \t%f\t%f\t%f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
+	 gyro_dps[1][2]);
+	 */
+	if (mpu_dmp_int) {
+		mpu_dmp_int = 0;
+		if (mpu6500_dmp_read(&g_mpu6500, &accel_raw[1], &accel_g[1],
+				&gyro_raw[1], &gyro_dps[1], &quat, &pitch, &roll, &yaw, &len)
+				== 0) {
+			float q0 = quat[0] / 1073741824.0f;
+			float q1 = quat[1] / 1073741824.0f;
+			float q2 = quat[2] / 1073741824.0f;
+			float q3 = quat[3] / 1073741824.0f;
+			// 打印或用来调试
+			float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+
+			printf("=== DMP DATA ===\r\n");
+			printf("ACC_RAW : %6d %6d %6d\r\n", accel_raw[0][0],
+					accel_raw[0][1], accel_raw[0][2]);
+			printf("ACC_G   : %6.3f %6.3f %6.3f g\r\n", accel_g[0][0],
+					accel_g[0][1], accel_g[0][2]);
+
+			printf("GYRO_RAW: %6d %6d %6d\r\n", gyro_raw[0][0], gyro_raw[0][1],
+					gyro_raw[0][2]);
+			printf("GYRO_DPS: %6.2f %6.2f %6.2f dps\r\n", gyro_dps[0][0],
+					gyro_dps[0][1], gyro_dps[0][1]);
+
+			printf("QUAT    : %+.4f %+.4f %+.4f %+.4f\r\n", q0, q1, q2, q3);
+			printf("|Q|     : %.6f\r\n", q_norm);
+
+			printf("RPY(deg): R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+			printf("----------------\r\n");
+
+		}
+	}
+
+//----------------------------------------------------------------------------
 	HAL_Delay(500);
 
 	unsigned char msg[] = "1,10.0,1,-10.0\n";
 	HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
-	//printf("111\n");
+//printf("111\n");
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用
@@ -78,8 +112,8 @@ void refreshAll(uint8_t id) {
 
 void returnToOrigin(float speed, float torque, uint32_t timeout) {
 
-	//.......
-	//在执行回原点前，先安全地保存现场，完成准备工作
+//.......
+//在执行回原点前，先安全地保存现场，完成准备工作
 
 	JM_SetPosVelModeMaxTorque(idLF, torque);	//限制最大力矩
 	JM_SetPosVelModeMaxTorque(idLR, torque);
@@ -93,9 +127,9 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	JM_VelMode(idRF, speed);
 	JM_VelMode(idRR, speed);
 
-	//float deltaPos[4][25];
-	//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
-	//了原点，时间一到直接设置当前为原点
+//float deltaPos[4][25];
+//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
+//了原点，时间一到直接设置当前为原点
 
 	/*
 	 uint32_t startTime = HAL_GetTick(); //开始时间
@@ -115,7 +149,7 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	JM_Restart(idLR);
 	JM_Restart(idRF);
 	JM_Restart(idRR);
-	HAL_Delay(100);//必须加延时，不然RR电机无法回零
+	HAL_Delay(100);	//必须加延时，不然RR电机无法回零
 	JM_ReturnToOrigin(idLF);	//转到原点，以展示回原点是否正确
 	HAL_Delay(100);
 	JM_ReturnToOrigin(idLR);
@@ -124,12 +158,12 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	HAL_Delay(100);
 	JM_ReturnToOrigin(idRR);
 	HAL_Delay(100);
-	//回原点完毕，安全地恢复现场
-	//........
+//回原点完毕，安全地恢复现场
+//........
 }
 
 void motionCtrlCycle() {
-	//运动控制环
+//运动控制环
 
 }
 
@@ -140,8 +174,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == MPU6500_INT_PIN) {
+		mpu_dmp_int = 1;
+	}
+}
+
 static void MPU6500_SPIInit() {
-	//--------------------------------------------------------------
+//--------------------------------------------------------------
 	uint8_t res;
 	/* link interface functions */
 	DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
@@ -154,13 +194,29 @@ static void MPU6500_SPIInit() {
 	DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
 			mpu6500_interface_receive_callback);
 	g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
-	res = mpu6500_init(&g_mpu6500);
-	if (res != 0) {
-		printf("mpu6500 init failed\r\n");
-		Error_Handler();
+	/*
+	 res = mpu6500_init(&g_mpu6500);
+
+	 if (mpu6500_dmp_load_firmware(&g_mpu6500) != 0) {
+	 printf("dmp firmware load failed\n");
+	 }
+	 mpu6500_dmp_set_fifo_rate(&g_mpu6500, 200);   // 200Hz
+	 mpu6500_dmp_set_feature(&g_mpu6500, MPU6500_DMP_FEATURE_6X_QUAT);
+	 mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
+
+	 if (res != 0) {
+	 printf("mpu6500 init failed\r\n");
+	 Error_Handler();
+	 }
+	 */
+	res = mpu6500_dmp_init(&g_mpu6500);
+	if (res != 0)
+	{
+	    printf("mpu6500 dmp init failed\r\n");
+	    Error_Handler();
 	}
 	mpu6500_set_accelerometer_range(&g_mpu6500, MPU6500_ACCELEROMETER_RANGE_2G);
 	mpu6500_set_gyroscope_range(&g_mpu6500, MPU6500_GYROSCOPE_RANGE_2000DPS);
 	mpu6500_set_sample_rate_divider(&g_mpu6500, (uint8_t) 1000);   // 1 kHz
-	//-------------------------------------------------------------------------
+//-------------------------------------------------------------------------
 }

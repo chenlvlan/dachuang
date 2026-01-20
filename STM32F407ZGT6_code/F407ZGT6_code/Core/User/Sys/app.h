@@ -25,6 +25,7 @@ extern CanRxMessage_t CanRxMessage;
 extern CAN_HandleTypeDef hcan1;
 extern CAN_HandleTypeDef hcan2;
 extern TIM_HandleTypeDef htim3;
+extern UART_HandleTypeDef huart1;
 
 //speed in Rad/s, torque in N.m, timeout in ms
 void returnToOrigin(float speed, float torque, uint32_t timeout);
@@ -37,7 +38,8 @@ void dmp_print_once();
 //void mpu_receive_callback(uint8_t type);
 //void mpu_tap_callback(uint8_t count, uint8_t dir);
 //void mpu_orient_callback(uint8_t orientation);
-
+void cli_init(void);
+void cli_handle_command(char *cmd);
 void refreshAll(uint8_t id);
 
 #endif /* USER_SYS_APP_H_ */

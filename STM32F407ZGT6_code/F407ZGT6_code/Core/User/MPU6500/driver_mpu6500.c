@@ -4296,7 +4296,7 @@ uint8_t mpu6500_read_temperature(mpu6500_handle_t *handle, int16_t (*raw),
 	res = a_mpu6500_read(handle, MPU6500_REG_TEMP_OUT_H, buf, 2); /* read data */
 	if (res != 0) /* check result */
 	{
-		handle->debug_print("mpu6500: read failed.\n"); /* read failed */
+		handle->debug_print("4299: mpu6500: read failed.\n"); /* read failed */
 
 		return 1; /* return error */
 	}

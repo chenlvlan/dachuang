@@ -8,6 +8,11 @@
 #include "app.h"
 
 //#define MPU6500_INTERFACE_SPI
+#define CLI_BUF_LEN 64
+
+static char cli_buf[CLI_BUF_LEN];
+static uint8_t cli_idx = 0;
+static uint8_t cli_rx_char;
 
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
@@ -19,6 +24,7 @@ static mpu6500_handle_t g_mpu6500;
 //float gyro_dps[1][3];
 //uint16_t len = 1;
 volatile uint8_t mpu_dmp_int = 0;
+volatile uint32_t g_loop_delay_ms = 100;
 //int32_t quat[4];
 //float pitch, roll, yaw;
 //------------------------------------------
@@ -27,7 +33,10 @@ void appSetup() {
 	HVHP(1); //母线上电
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	MPU6500_SPIInit();
-	//HAL_Delay(150); //等待供电稳定
+	cli_init();
+
+	printf("CLI ready, type 'help'\r\n");
+	HAL_Delay(150); //等待供电稳定
 	CommCan_Init(&hcan1); //关节电机can1通信初始化
 	CommCan_Init(&hcan2); //关节电机can2通信初始化
 	HAL_Delay(100);
@@ -95,16 +104,16 @@ void appLoop() {
 	 }
 	 */
 	//if (mpu_dmp_int) {
-		//printf("\r\n1\r\n");
-		mpu_dmp_int = 0;
-		dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
-		//mpu6500_force_fifo_reset(&g_mpu6500);
-		//printf("2\r\n");
+	//printf("\r\n1\r\n");
+	mpu_dmp_int = 0;
+	dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
+	//mpu6500_force_fifo_reset(&g_mpu6500);
+	//printf("2\r\n");
 	//}
 	//printf("a cycle\r\n");
 	//printf("loop end  ");
 //----------------------------------------------------------------------------
-	HAL_Delay(1);
+	HAL_Delay(g_loop_delay_ms);
 
 	//unsigned char msg[] = "1,10.0,1,-10.0\n";
 	//HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
@@ -160,15 +169,15 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	JM_Restart(idLR);
 	JM_Restart(idRF);
 	JM_Restart(idRR);
-	HAL_Delay(100);	//必须加延时，不然RR电机无法回零
+	HAL_Delay(200);	//必须加延时，不然RR电机无法回零
 	JM_ReturnToOrigin(idLF);	//转到原点，以展示回原点是否正确
-	HAL_Delay(100);
+	HAL_Delay(200);
 	JM_ReturnToOrigin(idLR);
-	HAL_Delay(100);
+	HAL_Delay(200);
 	JM_ReturnToOrigin(idRF);
-	HAL_Delay(100);
+	HAL_Delay(200);
 	JM_ReturnToOrigin(idRR);
-	HAL_Delay(100);
+	HAL_Delay(200);
 //回原点完毕，安全地恢复现场
 //........
 }
@@ -185,17 +194,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == MPU6500_INT_PIN) {
-		printf("INT triggered\n");
-		uint8_t status;
-		int d = 0;
-		d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
-		//printf("mpu6500_get_interrupt_status = %d", d);
-		mpu_dmp_int = 1;
-	}
-}
-
+/*
+ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+ if (GPIO_Pin == MPU6500_INT_PIN) {
+ printf("INT triggered\n");
+ uint8_t status;
+ int d = 0;
+ d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
+ //printf("mpu6500_get_interrupt_status = %d", d);
+ mpu_dmp_int = 1;
+ }
+ }
+ */
 void MPU6500_SPIInit() {
 	/*
 	 //--------------------------------------------------------------
@@ -281,15 +291,18 @@ void MPU6500_SPIInit() {
 
 /* 四元数打印函数 */
 void dmp_print_once() {
-	int16_t accel_raw[32][3];
-	float accel_g[32][3];
-	int16_t gyro_raw[32][3];
-	float gyro_dps[32][3];
-	int32_t quat[32][4];
+	int16_t accel_raw[1][3];
+	float accel_g[1][3];
+	int16_t gyro_raw[1][3];
+	float gyro_dps[1][3];
+	int32_t quat[1][4];
 	float pitch, roll, yaw;
-	uint16_t len = 32;
+	uint16_t len = 1;
 
 	int tmp = 0;
+	//float temperature;
+	//mpu6500_read_temperature(&g_mpu6500, NULL, &temperature);
+	//printf("temperature = %.2f\r\n", temperature);
 
 	tmp = mpu6500_dmp_read(&g_mpu6500, accel_raw, accel_g, gyro_raw, gyro_dps,
 			quat, &pitch, &roll, &yaw, &len);
@@ -302,15 +315,15 @@ void dmp_print_once() {
 		return;
 	}
 
-	float q0 = quat[31][0] / 1073741824.0f;
-	float q1 = quat[31][1] / 1073741824.0f;
-	float q2 = quat[31][2] / 1073741824.0f;
-	float q3 = quat[31][3] / 1073741824.0f;
+	float q0 = quat[0][0] / 1073741824.0f;
+	float q1 = quat[0][1] / 1073741824.0f;
+	float q2 = quat[0][2] / 1073741824.0f;
+	float q3 = quat[0][3] / 1073741824.0f;
 	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
 
-	printf("QUAT: %+.4f %+.4f %+.4f %+.4f |Q|: %.6f\r\n", q0, q1, q2, q3,
-			q_norm);
-	printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+	//printf("QUAT: %+.4f %+.4f %+.4f %+.4f |Q|: %.6f\r\n", q0, q1, q2, q3, q_norm);
+	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+	printf("%.5f, %.5f, %.5f\n", roll, pitch, yaw);
 }
 /*
  void mpu_receive_callback(uint8_t type) {
@@ -324,7 +337,52 @@ void dmp_print_once() {
  }
 
  //orientation 回调（空函数
-void mpu_orient_callback(uint8_t orientation) {
-	(void) orientation;
+ void mpu_orient_callback(uint8_t orientation) {
+ (void) orientation;
+ }
+ */
+
+void cli_init(void) {
+	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
 }
-*/
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart != &huart1)
+		return;
+
+	//printf("aaa\r\n");
+	if (cli_rx_char == '\r' || cli_rx_char == '\n') {
+		cli_buf[cli_idx] = '\0';
+		cli_idx = 0;
+
+		cli_handle_command(cli_buf);
+	} else {
+		if (cli_idx < CLI_BUF_LEN - 1) {
+			cli_buf[cli_idx++] = cli_rx_char;
+		}
+	}
+
+	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
+}
+
+void cli_handle_command(char *cmd) {
+	if (strlen(cmd) == 0)
+		return;
+
+	if (strcmp(cmd, "help") == 0) {
+		printf("Commands:\r\n");
+		printf("  delay           show delay(ms)\r\n");
+		printf("  delay <num>     set delay(ms)\r\n");
+	} else if (strncmp(cmd, "delay", 5) == 0) {
+		uint32_t val;
+
+		if (sscanf(cmd, "delay %lu", &val) == 1) {
+			g_loop_delay_ms = val;
+			printf("delay set to %lu ms\r\n", g_loop_delay_ms);
+		} else {
+			printf("delay = %lu ms\r\n", g_loop_delay_ms);
+		}
+	} else {
+		printf("unknown cmd: %s\r\n", cmd);
+	}
+}

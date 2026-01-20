@@ -28,6 +28,7 @@ void returnToOrigin(float speed, float torque, uint32_t timeout);
 void appLoop();
 void appSetup();
 void motionCtrlCycle();
+static void MPU6500_SPIInit();
 
 void refreshAll(uint8_t id);
 

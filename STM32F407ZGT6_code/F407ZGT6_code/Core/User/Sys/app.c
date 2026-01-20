@@ -19,6 +19,63 @@ float accel_g[1][3];
 float gyro_dps[1][3];
 uint16_t len = 1;
 //------------------------------------------
+
+void appSetup() {
+	HVHP(1); //母线上电
+
+	HAL_Delay(150); //等待供电稳定
+	CommCan_Init(&hcan1); //关节电机can1通信初始化
+	CommCan_Init(&hcan2); //关节电机can2通信初始化
+	HAL_Delay(100);
+
+	//上电后的基本信息读取
+	refreshAll(idLF);
+	refreshAll(idLR);
+	refreshAll(idRF);
+	refreshAll(idRR);
+
+	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
+
+	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
+	returnToOrigin(0.3, 0.2, 3000); //回原点
+	MPU6500_SPIInit();
+
+}
+
+void appLoop() {
+	//这个是主程序
+	if (doMotionCtrlCycle == 1) {
+		doMotionCtrlCycle = 0;
+		motionCtrlCycle();
+	}
+	//-----------------------------------------------------
+	//mpu6500_read_acceleration(&g_mpu6500, accel_raw, accel_g);
+	//mpu6500_read_gyroscope(&g_mpu6500, gyro_raw, gyro_dps);
+	mpu6500_read(&g_mpu6500, &accel_raw[1], &accel_g[1], &gyro_raw[1],
+			&gyro_dps[1], &len);
+
+	printf("ACC: \t%f\t%f\t%f g\r\n", accel_g[1][0], accel_g[1][1],
+			accel_g[1][2]);
+	printf("GYR: \t%f\t%f\t%f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
+			gyro_dps[1][2]);
+	//----------------------------------------------------------------------------
+	HAL_Delay(500);
+
+	unsigned char msg[] = "1,10.0,1,-10.0\n";
+	HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
+	//printf("111\n");
+}
+
+//警告：这个是阻塞函数，实时状态下禁止使用
+void refreshAll(uint8_t id) {
+	JM_GetMotorInfo(id, 0);
+	HAL_Delay(5);
+	JM_GetRealTimeStatusInfo(id);
+	HAL_Delay(5);
+	JM_GetSoftwareInfo(id);
+	HAL_Delay(5);
+}
+
 void returnToOrigin(float speed, float torque, uint32_t timeout) {
 
 	//.......
@@ -73,47 +130,14 @@ void motionCtrlCycle() {
 
 }
 
-void appLoop() {
-	//这个是主程序
-	if (doMotionCtrlCycle == 1) {
-		doMotionCtrlCycle = 0;
-		motionCtrlCycle();
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim->Instance == TIM3) {
+		// ---- 这里执行你的 20ms 控制环 ----
+		doMotionCtrlCycle = 1;
 	}
-	//-----------------------------------------------------
-	//mpu6500_read_acceleration(&g_mpu6500, accel_raw, accel_g);
-	//mpu6500_read_gyroscope(&g_mpu6500, gyro_raw, gyro_dps);
-	mpu6500_read(&g_mpu6500, &accel_raw[1], &accel_g[1], &gyro_raw[1],
-			&gyro_dps[1], &len);
-
-	printf("ACC: %f %f %f g\r\n", accel_g[1][0], accel_g[1][1], accel_g[1][2]);
-	printf("GYR: %f %f %f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
-			gyro_dps[1][2]);
-	//----------------------------------------------------------------------------
-	HAL_Delay(500);
-
-	unsigned char msg[] = "1,10.0,1,-10.0\n";
-	HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
-	//printf("111\n");
 }
 
-void appSetup() {
-	HVHP(1); //母线上电
-	HAL_Delay(250); //等待供电稳定
-	CommCan_Init(&hcan1); //关节电机can1通信初始化
-	CommCan_Init(&hcan2); //关节电机can2通信初始化
-	HAL_Delay(100);
-
-	//上电后的基本信息读取
-	refreshAll(idLF);
-	refreshAll(idLR);
-	refreshAll(idRF);
-	refreshAll(idRR);
-
-	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
-
-	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
-	returnToOrigin(0.3, 0.2, 3000); //回原点
-
+void MPU6500_SPIInit() {
 	//--------------------------------------------------------------
 	uint8_t res;
 	/* link interface functions */
@@ -126,9 +150,7 @@ void appSetup() {
 	DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
 	DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
 			mpu6500_interface_receive_callback);
-	//DRIVER_MPU6500_LINK_
 	g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
-	/* init device */
 	res = mpu6500_init(&g_mpu6500);
 	if (res != 0) {
 		printf("mpu6500 init failed\r\n");
@@ -139,21 +161,3 @@ void appSetup() {
 	mpu6500_set_sample_rate_divider(&g_mpu6500, (uint8_t) 1000);   // 1 kHz
 	//-------------------------------------------------------------------------
 }
-
-//警告：这个是阻塞函数，实时状态下禁止使用
-void refreshAll(uint8_t id) {
-	JM_GetMotorInfo(id, 0);
-	HAL_Delay(5);
-	JM_GetRealTimeStatusInfo(id);
-	HAL_Delay(5);
-	JM_GetSoftwareInfo(id);
-	HAL_Delay(5);
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
-	if (htim->Instance == TIM3) {
-		// ---- 这里执行你的 20ms 控制环 ----
-		doMotionCtrlCycle = 1;
-	}
-}
-

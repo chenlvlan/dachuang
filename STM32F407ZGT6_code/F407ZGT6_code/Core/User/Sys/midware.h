@@ -11,6 +11,7 @@
 #define USER_SYS_MIDWARE_H_
 
 #include "../Comm/comm_can.h"
+
 #include "misc.h"
 #include "can.h"
 #include <stdbool.h>

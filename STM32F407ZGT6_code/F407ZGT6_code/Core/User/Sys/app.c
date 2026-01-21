@@ -6,9 +6,6 @@
  */
 
 #include "app.h"
-#include <math.h>
-#define RAD2DEG (57.2957795131f)
-#define DEG2RAD (0.01745329252f)
 
 //#define MPU6500_INTERFACE_SPI
 #define CLI_BUF_LEN 64
@@ -19,19 +16,9 @@ static uint8_t cli_rx_char;
 
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
-static mpu6500_handle_t g_mpu6500;
+
 //----------------------------------------
-//int16_t accel_raw[1][3];
-//int16_t gyro_raw[1][3];
-//float accel_g[1][3];
-//float gyro_dps[1][3];
-//uint16_t len = 1;
-volatile uint8_t mpu_dmp_int = 0;
-volatile uint32_t g_loop_delay_ms = 100;
-//int32_t quat[4];
-//float pitch, roll, yaw;
-
-
+int mpu_dmp_int = 0;
 //------------------------------------------
 
 void appSetup() {
@@ -74,63 +61,10 @@ void appLoop() {
 		doMotionCtrlCycle = 0;
 		motionCtrlCycle();
 	}
-	//-----------------------------------------------------
-	/*
-	 mpu6500_read(&g_mpu6500, &accel_raw[1], &accel_g[1], &gyro_raw[1],
-	 &gyro_dps[1], &len);
-
-	 printf("ACC: \t%f\t%f\t%f g\r\n", accel_g[1][0], accel_g[1][1],
-	 accel_g[1][2]);
-	 printf("GYR: \t%f\t%f\t%f dps\r\n", gyro_dps[1][0], gyro_dps[1][1],
-	 gyro_dps[1][2]);
-
-	 if (mpu_dmp_int) {
-	 mpu_dmp_int = 0;
-	 if (mpu6500_dmp_read(&g_mpu6500, &accel_raw[1], &accel_g[1],
-	 &gyro_raw[1], &gyro_dps[1], &quat, &pitch, &roll, &yaw, &len)
-	 == 0) {
-	 float q0 = quat[0] / 1073741824.0f;
-	 float q1 = quat[1] / 1073741824.0f;
-	 float q2 = quat[2] / 1073741824.0f;
-	 float q3 = quat[3] / 1073741824.0f;
-	 // 打印或用来调试
-	 float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-
-	 printf("=== DMP DATA ===\r\n");
-	 printf("ACC_RAW : %6d %6d %6d\r\n", accel_raw[0][0],
-	 accel_raw[0][1], accel_raw[0][2]);
-	 printf("ACC_G   : %6.3f %6.3f %6.3f g\r\n", accel_g[0][0],
-	 accel_g[0][1], accel_g[0][2]);
-
-	 printf("GYRO_RAW: %6d %6d %6d\r\n", gyro_raw[0][0], gyro_raw[0][1],
-	 gyro_raw[0][2]);
-	 printf("GYRO_DPS: %6.2f %6.2f %6.2f dps\r\n", gyro_dps[0][0],
-	 gyro_dps[0][1], gyro_dps[0][1]);
-
-	 printf("QUAT    : %+.4f %+.4f %+.4f %+.4f\r\n", q0, q1, q2, q3);
-	 printf("|Q|     : %.6f\r\n", q_norm);
-
-	 printf("RPY(deg): R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-	 printf("----------------\r\n");
-
-	 }
-	 }
-	 */
 	if (mpu_dmp_int) {
 		//printf("\r\n1\r\n");
 		mpu_dmp_int = 0;
-		dmp_print_once(); // 这里才调用 mpu6500_dmp_read()
-		//mpu6500_force_fifo_reset(&g_mpu6500);
-		//printf("2\r\n");
 	}
-	//printf("a cycle\r\n");
-	//printf("loop end  ");
-//----------------------------------------------------------------------------
-	//HAL_Delay(g_loop_delay_ms);
-
-	//unsigned char msg[] = "1,10.0,1,-10.0\n";
-	//HAL_UART_Transmit(&huart4, msg, sizeof(msg), 0xffff);
-//printf("111\n");
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用
@@ -209,12 +143,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == MPU6500_INT_PIN) {
-		//printf("INT triggered\n");
-		//int d = 0;
-		//d = mpu6500_get_interrupt_status(&g_mpu6500, &status);
-		//printf("mpu6500_get_interrupt_status = %d", d);
-		uint8_t status;
-		mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
+
+		//uint8_t status;
+		//mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
 
 		//printf("INT_STATUS = 0x%02X\r\n", status);
 		mpu_dmp_int = 1;
@@ -222,158 +153,30 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 void MPU6500_SPIInit() {
-	/*
-	 //--------------------------------------------------------------
 
-	 uint8_t res;
-	 DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
-	 DRIVER_MPU6500_LINK_SPI_INIT(&g_mpu6500, mpu6500_interface_spi_init);
-	 DRIVER_MPU6500_LINK_SPI_DEINIT(&g_mpu6500, mpu6500_interface_spi_deinit);
-	 DRIVER_MPU6500_LINK_SPI_READ(&g_mpu6500, mpu6500_interface_spi_read);
-	 DRIVER_MPU6500_LINK_SPI_WRITE(&g_mpu6500, mpu6500_interface_spi_write);
-	 DRIVER_MPU6500_LINK_DELAY_MS(&g_mpu6500, mpu6500_interface_delay_ms);
-	 DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
-	 DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
-	 mpu6500_interface_receive_callback);
-	 g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
-
-	 res = mpu6500_init(&g_mpu6500);
-
-	 if (mpu6500_dmp_load_firmware(&g_mpu6500) != 0) {
-	 printf("dmp firmware load failed\n");
-	 }
-	 mpu6500_dmp_set_fifo_rate(&g_mpu6500, 200);   // 200Hz
-	 mpu6500_dmp_set_feature(&g_mpu6500, MPU6500_DMP_FEATURE_6X_QUAT);
-	 mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
-
-	 if (res != 0) {
-	 printf("mpu6500 init failed\r\n");
-	 Error_Handler();
-	 }
-
-	 res = mpu6500_dmp_init(&g_mpu6500);
-	 if (res != 0)
-	 {
-	 printf("mpu6500 dmp init failed\r\n");
-	 Error_Handler();
-	 }
-	 mpu6500_set_accelerometer_range(&g_mpu6500, MPU6500_ACCELEROMETER_RANGE_2G);
-	 mpu6500_set_gyroscope_range(&g_mpu6500, MPU6500_GYROSCOPE_RANGE_2000DPS);
-	 mpu6500_set_sample_rate_divider(&g_mpu6500, (uint8_t) 1000);   // 1 kHz
-	 //-------------------------------------------------------------------------
-	 */
-	/*
-	 // 绑定接口
-	 DRIVER_MPU6500_LINK_INIT(&g_mpu6500, mpu6500_handle_t);
-	 DRIVER_MPU6500_LINK_SPI_INIT(&g_mpu6500, mpu6500_interface_spi_init);
-	 DRIVER_MPU6500_LINK_SPI_DEINIT(&g_mpu6500, mpu6500_interface_spi_deinit);
-	 DRIVER_MPU6500_LINK_SPI_READ(&g_mpu6500, mpu6500_interface_spi_read);
-	 DRIVER_MPU6500_LINK_SPI_WRITE(&g_mpu6500, mpu6500_interface_spi_write);
-	 DRIVER_MPU6500_LINK_DELAY_MS(&g_mpu6500, mpu6500_interface_delay_ms);
-	 DRIVER_MPU6500_LINK_DEBUG_PRINT(&g_mpu6500, mpu6500_interface_debug_print);
-	 DRIVER_MPU6500_LINK_RECEIVE_CALLBACK(&g_mpu6500,
-	 mpu6500_interface_receive_callback);
-	 g_mpu6500.iic_spi = MPU6500_INTERFACE_SPI;
-
-	 // **必须先初始化 handle**
-	 if (mpu6500_init(&g_mpu6500) != 0) {
-	 printf("mpu6500 init failed\n");
-	 Error_Handler();
-	 }
-	 */
-	mpu6500_interface_t interface = MPU6500_INTERFACE_SPI;
-	mpu6500_address_t addr_pin = MPU6500_ADDRESS_AD0_HIGH; // 取决于 CS 接法
-
-	if (mpu6500_dmp_init(&g_mpu6500, interface, addr_pin, NULL,
-	NULL, NULL) != 0) {
-		printf("DMP init failed\n");
-		Error_Handler();
-	}
-	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 100); // 50Hz 而不是 200Hz
-	//printf("mpu6500_dmp_set_fifo_rate = %d\r\n", c);
-	//mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
-	//mpu6500_set_interrupt_data_ready(&g_mpu6500, MPU6500_BOOL_TRUE);
-	//mpu6500_set_interrupt(&g_mpu6500, MPU6500_INTERRUPT_DATA_READY, MPU6500_BOOL_TRUE);
-	//mpu6500_set_interrupt_latch(&g_mpu6500, MPU6500_BOOL_FALSE);      // 50µs 脉冲模式
-	//mpu6500_set_interrupt_read_clear(&g_mpu6500, MPU6500_BOOL_TRUE);  // 读状态清除中断
-	//mpu6500_set_interrupt_latch(&g_mpu6500, MPU6500_BOOL_FALSE);
-
-	//printf("mpu6500_dmp_set_enable = %d\r\n", c);
-	//HAL_Delay(500);
-	//printf("inited = %d, dmp_inited = %d\r\n", g_mpu6500.inited, g_mpu6500.dmp_inited);
 	//------------以下为新加的------------
-	uint8_t tmp;
+	//uint8_t tmp;
 
 	// 清中断
-	mpu6500_get_reg(&g_mpu6500, 0x3A, &tmp, 1);
+	//mpu6500_get_reg(&g_mpu6500, 0x3A, &tmp, 1);
 
 	// DMP / FIFO 中断
-	tmp = 0x02;  // FIFO_OFLOW_EN / DMP_INT_EN 由 DMP 内部控制
-	mpu6500_set_reg(&g_mpu6500, 0x38, &tmp, 1);
+	//tmp = 0x02;  // FIFO_OFLOW_EN / DMP_INT_EN 由 DMP 内部控制
+	//mpu6500_set_reg(&g_mpu6500, 0x38, &tmp, 1);
 
 	// INT 引脚：非锁存，读状态清中断
-	tmp = 0x00;
-	mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
+	//tmp = 0x00;
+	//mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
 	//------------以上为新加的------------
 
 }
 
 /* 四元数打印函数 */
 void dmp_print_once() {
-	int16_t accel_raw[16][3];
-	float accel_g[16][3];
-	int16_t gyro_raw[16][3];
-	float gyro_dps[16][3];
-	int32_t quat[16][4];
-	float pitch, roll, yaw;
-	uint16_t len = 16;
-
-	//uint16_t fifo_bytes = 0;
-	//mpu6500_get_fifo_count(&g_mpu6500, &fifo_bytes);
-	//printf("FIFO bytes before read = %u   ", fifo_bytes);
-
-	int tmp = 0;
-	//float temperature;
-	//mpu6500_read_temperature(&g_mpu6500, NULL, &temperature);
-	//printf("temperature = %.2f\r\n", temperature);
-
-	tmp = mpu6500_dmp_read(&g_mpu6500, accel_raw, accel_g, gyro_raw, gyro_dps,
-			quat, &pitch, &roll, &yaw, &len);
-	//tmp = mpu6500_dmp_read_all(&g_mpu6500, accel_raw, accel_g, gyro_raw, gyro_dps, &quat, &pitch, &roll, &yaw, len);
-	//printf("inited = %d, dmp_inited = %d\r\n", g_mpu6500.inited, g_mpu6500.dmp_inited);
-	if (tmp != 0) {
-		printf("DMP read failed, error code %d\r\n", tmp);
-		mpu6500_force_fifo_reset(&g_mpu6500);
-		//printf("mpu6500_force_fifo_reset = %d\r\n", b);
-		return;
-	}
-
-	imu_raw_t imu_raw;
-	imu_attitude_t imu_att;
-	float alpha = 0.98f; // 互补滤波系数
-	// 假设循环频率 100Hz
-	imu_raw.dt = 0.025f;
-	// 每次循环更新原始数据
-	imu_raw.ax = accel_g[len - 1][0];  // 单位 g
-	imu_raw.ay = accel_g[len - 1][1];
-	imu_raw.az = accel_g[len - 1][2];
-	imu_raw.gx = gyro_dps[len - 1][0]; // 单位 deg/s
-	imu_raw.gy = gyro_dps[len - 1][1];
-	imu_raw.gz = gyro_dps[len - 1][2];
-	simple_attitude_fusion_rpy(&imu_raw, &imu_att, alpha);
-	printf("%.5f, %.5f, %.5f, ", imu_att.roll, imu_att.pitch, imu_att.yaw);
-
-/*
-	float q0 = quat[len - 1][0] / 1073741824.0f;
-	float q1 = quat[len - 1][1] / 1073741824.0f;
-	float q2 = quat[len - 1][2] / 1073741824.0f;
-	float q3 = quat[len - 1][3] / 1073741824.0f;
-	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-*/
 	//printf("%.4f, %.4f, %.4f, %.4f, ", q0, q1, q2, q3);
 	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-	printf("%.5f, %.5f, %.5f", roll, pitch, yaw);
-	printf("\n");
+	//printf("%.5f, %.5f, %.5f", roll, pitch, yaw);
+	//printf("\n");
 }
 
 void cli_init(void) {
@@ -411,40 +214,12 @@ void cli_handle_command(char *cmd) {
 		uint32_t val;
 
 		if (sscanf(cmd, "delay %lu", &val) == 1) {
-			g_loop_delay_ms = val;
-			printf("delay set to %lu ms\r\n", g_loop_delay_ms);
+			//g_loop_delay_ms = val;
+			//printf("delay set to %lu ms\r\n", g_loop_delay_ms);
 		} else {
-			printf("delay = %lu ms\r\n", g_loop_delay_ms);
+			//printf("delay = %lu ms\r\n", g_loop_delay_ms);
 		}
 	} else {
 		printf("unknown cmd: %s\r\n", cmd);
 	}
-}
-
-void simple_attitude_fusion_rpy(const imu_raw_t *raw, imu_attitude_t *att, float alpha)
-{
-    // alpha = 0~1, 融合系数，越大越依赖陀螺仪，越小越依赖加速度
-
-    // 1️⃣ 计算加速度倾角 roll/pitch
-    float roll_acc  = atan2f(raw->ay, raw->az);
-    float pitch_acc = atan2f(-raw->ax, sqrtf(raw->ay*raw->ay + raw->az*raw->az));
-
-    // 2️⃣ 积分陀螺仪角速度
-    static float roll_gyro  = 0;
-    static float pitch_gyro = 0;
-    static float yaw_gyro   = 0;
-
-    roll_gyro  += raw->gx * DEG2RAD * raw->dt;   // gx 单位 deg/s -> rad
-    pitch_gyro += raw->gy * DEG2RAD * raw->dt;   // gy 单位 deg/s -> rad
-    yaw_gyro   += raw->gz * DEG2RAD * raw->dt;   // gz 单位 deg/s -> rad
-
-    // 3️⃣ 互补融合
-    att->roll  = alpha * roll_gyro + (1 - alpha) * roll_acc;
-    att->pitch = alpha * pitch_gyro + (1 - alpha) * pitch_acc;
-    att->yaw   = yaw_gyro; // 纯积分陀螺仪
-
-    // 4️⃣ 转成度
-    att->roll  *= RAD2DEG;
-    att->pitch *= RAD2DEG;
-    att->yaw   *= RAD2DEG;
 }

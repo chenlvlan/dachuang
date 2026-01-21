@@ -635,7 +635,7 @@ uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
 	 return 1;
 	 }
 	 */
-	res = mpu6500_set_low_pass_filter(gs_handle, MPU6500_LOW_PASS_FILTER_2);
+	res = mpu6500_set_low_pass_filter(gs_handle, MPU6500_LOW_PASS_FILTER_3);
 	if (res != 0) {
 		mpu6500_interface_debug_print("mpu6500: set low pass filter failed.\n");
 		(void) mpu6500_deinit(gs_handle);
@@ -668,7 +668,7 @@ uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
 	 }
 	 */
 	res = mpu6500_set_accelerometer_low_pass_filter(gs_handle,
-			MPU6500_ACCELEROMETER_LOW_PASS_FILTER_2);
+			MPU6500_ACCELEROMETER_LOW_PASS_FILTER_3);
 	if (res != 0) {
 		mpu6500_interface_debug_print(
 				"mpu6500: set accelerometer low pass filter failed.\n");

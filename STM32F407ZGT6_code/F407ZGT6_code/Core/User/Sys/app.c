@@ -342,16 +342,16 @@ void dmp_print_once() {
 		//printf("mpu6500_force_fifo_reset = %d\r\n", b);
 		return;
 	}
-/*
-	float q0 = quat[len][0] / 1073741824.0f;
-	float q1 = quat[len][1] / 1073741824.0f;
-	float q2 = quat[len][2] / 1073741824.0f;
-	float q3 = quat[len][3] / 1073741824.0f;
+
+	float q0 = quat[len-1][0] / 1073741824.0f;
+	float q1 = quat[len-1][1] / 1073741824.0f;
+	float q2 = quat[len-1][2] / 1073741824.0f;
+	float q3 = quat[len-1][3] / 1073741824.0f;
 	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
-*/
-	//printf("QUAT: %+.4f %+.4f %+.4f %+.4f |Q|: %.6f\r\n", q0, q1, q2, q3, q_norm);
+
+	printf("%.4f, %.4f, %.4f, %.4f\n", q0, q1, q2, q3);
 	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-	printf("%.5f, %.5f, %.5f\n", roll, pitch, yaw);
+	//printf("%.5f, %.5f, %.5f\n", roll, pitch, yaw);
 }
 /*
  void mpu_receive_callback(uint8_t type) {

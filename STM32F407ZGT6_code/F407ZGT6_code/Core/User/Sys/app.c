@@ -6,6 +6,9 @@
  */
 
 #include "app.h"
+#include <math.h>
+#define RAD2DEG (57.2957795131f)
+#define DEG2RAD (0.01745329252f)
 
 //#define MPU6500_INTERFACE_SPI
 #define CLI_BUF_LEN 64
@@ -27,6 +30,8 @@ volatile uint8_t mpu_dmp_int = 0;
 volatile uint32_t g_loop_delay_ms = 100;
 //int32_t quat[4];
 //float pitch, roll, yaw;
+
+
 //------------------------------------------
 
 void appSetup() {
@@ -343,32 +348,33 @@ void dmp_print_once() {
 		return;
 	}
 
-	float q0 = quat[len-1][0] / 1073741824.0f;
-	float q1 = quat[len-1][1] / 1073741824.0f;
-	float q2 = quat[len-1][2] / 1073741824.0f;
-	float q3 = quat[len-1][3] / 1073741824.0f;
-	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+	imu_raw_t imu_raw;
+	imu_attitude_t imu_att;
+	float alpha = 0.98f; // 互补滤波系数
+	// 假设循环频率 100Hz
+	imu_raw.dt = 0.01f;
+	// 每次循环更新原始数据
+	imu_raw.ax = accel_g[len - 1][0];  // 单位 g
+	imu_raw.ay = accel_g[len - 1][1];
+	imu_raw.az = accel_g[len - 1][2];
+	imu_raw.gx = gyro_dps[len - 1][0]; // 单位 deg/s
+	imu_raw.gy = gyro_dps[len - 1][1];
+	imu_raw.gz = gyro_dps[len - 1][2];
+	simple_attitude_fusion_rpy(&imu_raw, &imu_att, alpha);
+	printf("%.5f, %.5f, %.5f, ", imu_att.roll, imu_att.pitch, imu_att.yaw);
 
-	printf("%.4f, %.4f, %.4f, %.4f\n", q0, q1, q2, q3);
-	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-	//printf("%.5f, %.5f, %.5f\n", roll, pitch, yaw);
-}
 /*
- void mpu_receive_callback(uint8_t type) {
- mpu_dmp_int = 1;
- printf("mpu_receive_callback triggered\n");
- }
-
- void mpu_tap_callback(uint8_t count, uint8_t dir) {
- (void) count;
- (void) dir;
- }
-
- //orientation 回调（空函数
- void mpu_orient_callback(uint8_t orientation) {
- (void) orientation;
- }
- */
+	float q0 = quat[len - 1][0] / 1073741824.0f;
+	float q1 = quat[len - 1][1] / 1073741824.0f;
+	float q2 = quat[len - 1][2] / 1073741824.0f;
+	float q3 = quat[len - 1][3] / 1073741824.0f;
+	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+*/
+	//printf("%.4f, %.4f, %.4f, %.4f, ", q0, q1, q2, q3);
+	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
+	printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
+	printf("\n");
+}
 
 void cli_init(void) {
 	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
@@ -413,4 +419,32 @@ void cli_handle_command(char *cmd) {
 	} else {
 		printf("unknown cmd: %s\r\n", cmd);
 	}
+}
+
+void simple_attitude_fusion_rpy(const imu_raw_t *raw, imu_attitude_t *att, float alpha)
+{
+    // alpha = 0~1, 融合系数，越大越依赖陀螺仪，越小越依赖加速度
+
+    // 1️⃣ 计算加速度倾角 roll/pitch
+    float roll_acc  = atan2f(raw->ay, raw->az);
+    float pitch_acc = atan2f(-raw->ax, sqrtf(raw->ay*raw->ay + raw->az*raw->az));
+
+    // 2️⃣ 积分陀螺仪角速度
+    static float roll_gyro  = 0;
+    static float pitch_gyro = 0;
+    static float yaw_gyro   = 0;
+
+    roll_gyro  += raw->gx * DEG2RAD * raw->dt;   // gx 单位 deg/s -> rad
+    pitch_gyro += raw->gy * DEG2RAD * raw->dt;   // gy 单位 deg/s -> rad
+    yaw_gyro   += raw->gz * DEG2RAD * raw->dt;   // gz 单位 deg/s -> rad
+
+    // 3️⃣ 互补融合
+    att->roll  = alpha * roll_gyro + (1 - alpha) * roll_acc;
+    att->pitch = alpha * pitch_gyro + (1 - alpha) * pitch_acc;
+    att->yaw   = yaw_gyro; // 纯积分陀螺仪
+
+    // 4️⃣ 转成度
+    att->roll  *= RAD2DEG;
+    att->pitch *= RAD2DEG;
+    att->yaw   *= RAD2DEG;
 }

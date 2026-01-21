@@ -30,6 +30,7 @@ volatile uint32_t g_loop_delay_ms = 100;
 //------------------------------------------
 
 void appSetup() {
+	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	MPU6500_SPIInit();
@@ -51,6 +52,13 @@ void appSetup() {
 
 	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
 	returnToOrigin(0.3, 0.2, 3000); //回原点
+
+	//printf("going to turn on the irq\r\n");
+	//开启6500的中断捕获
+	//HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
+	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
+	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+	//printf("irq is on\r\n");
 
 }
 
@@ -203,7 +211,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 		uint8_t status;
 		mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
 
-		printf("INT_STATUS = 0x%02X\r\n", status);
+		//printf("INT_STATUS = 0x%02X\r\n", status);
 		mpu_dmp_int = 1;
 	}
 }
@@ -276,7 +284,7 @@ void MPU6500_SPIInit() {
 		printf("DMP init failed\n");
 		Error_Handler();
 	}
-	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 50); // 50Hz 而不是 200Hz
+	mpu6500_dmp_set_fifo_rate(&g_mpu6500, 100); // 50Hz 而不是 200Hz
 	//printf("mpu6500_dmp_set_fifo_rate = %d\r\n", c);
 	//mpu6500_dmp_set_enable(&g_mpu6500, MPU6500_BOOL_TRUE);
 	//mpu6500_set_interrupt_data_ready(&g_mpu6500, MPU6500_BOOL_TRUE);
@@ -291,14 +299,14 @@ void MPU6500_SPIInit() {
 	//------------以下为新加的------------
 	uint8_t tmp;
 
-	/* 清一遍中断 */
+	// 清中断
 	mpu6500_get_reg(&g_mpu6500, 0x3A, &tmp, 1);
 
-	/* INT：Data Ready */
-	tmp = 0x01;
+	// DMP / FIFO 中断
+	tmp = 0x02;  // FIFO_OFLOW_EN / DMP_INT_EN 由 DMP 内部控制
 	mpu6500_set_reg(&g_mpu6500, 0x38, &tmp, 1);
 
-	/* INT 为高电平有效，推挽 */
+	// INT 引脚：非锁存，读状态清中断
 	tmp = 0x00;
 	mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
 	//------------以上为新加的------------
@@ -307,13 +315,18 @@ void MPU6500_SPIInit() {
 
 /* 四元数打印函数 */
 void dmp_print_once() {
-	int16_t accel_raw[1][3];
-	float accel_g[1][3];
-	int16_t gyro_raw[1][3];
-	float gyro_dps[1][3];
-	int32_t quat[1][4];
+	int16_t accel_raw[16][3];
+	float accel_g[16][3];
+	int16_t gyro_raw[16][3];
+	float gyro_dps[16][3];
+	int32_t quat[16][4];
 	float pitch, roll, yaw;
-	uint16_t len = 1;
+	uint16_t len = 16;
+
+	//uint16_t fifo_bytes = 0;
+	//mpu6500_get_fifo_count(&g_mpu6500, &fifo_bytes);
+
+	//printf("FIFO bytes before read = %u   ", fifo_bytes);
 
 	int tmp = 0;
 	//float temperature;
@@ -331,10 +344,10 @@ void dmp_print_once() {
 		return;
 	}
 
-	float q0 = quat[0][0] / 1073741824.0f;
-	float q1 = quat[0][1] / 1073741824.0f;
-	float q2 = quat[0][2] / 1073741824.0f;
-	float q3 = quat[0][3] / 1073741824.0f;
+	float q0 = quat[len][0] / 1073741824.0f;
+	float q1 = quat[len][1] / 1073741824.0f;
+	float q2 = quat[len][2] / 1073741824.0f;
+	float q3 = quat[len][3] / 1073741824.0f;
 	float q_norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
 
 	//printf("QUAT: %+.4f %+.4f %+.4f %+.4f |Q|: %.6f\r\n", q0, q1, q2, q3, q_norm);

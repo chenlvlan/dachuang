@@ -624,8 +624,18 @@ uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
 	}
 
 	/* set the default low pass filter */
-	res = mpu6500_set_low_pass_filter(gs_handle,
-	MPU6500_DMP_DEFAULT_LOW_PASS_FILTER);
+	//这个是默认的
+	/*
+	 res = mpu6500_set_low_pass_filter(gs_handle,
+	 MPU6500_DMP_DEFAULT_LOW_PASS_FILTER);
+	 if (res != 0) {
+	 mpu6500_interface_debug_print("mpu6500: set low pass filter failed.\n");
+	 (void) mpu6500_deinit(gs_handle);
+
+	 return 1;
+	 }
+	 */
+	res = mpu6500_set_low_pass_filter(gs_handle, MPU6500_LOW_PASS_FILTER_0);
 	if (res != 0) {
 		mpu6500_interface_debug_print("mpu6500: set low pass filter failed.\n");
 		(void) mpu6500_deinit(gs_handle);
@@ -645,6 +655,7 @@ uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
 	}
 
 	/* set the default accelerometer low pass filter */
+	//这个是默认的
 	res = mpu6500_set_accelerometer_low_pass_filter(gs_handle,
 	MPU6500_DMP_DEFAULT_ACCELEROMETER_LOW_PASS_FILTER);
 	if (res != 0) {
@@ -955,7 +966,8 @@ uint8_t mpu6500_dmp_init(mpu6500_handle_t *gs_handle,
  *             - 1 get pedometer counter failed
  * @note       none
  */
-uint8_t mpu6500_dmp_get_pedometer_counter(mpu6500_handle_t* gs_handle, uint32_t *cnt) {
+uint8_t mpu6500_dmp_get_pedometer_counter(mpu6500_handle_t *gs_handle,
+		uint32_t *cnt) {
 	/* get the pedometer counter */
 	if (mpu6500_dmp_get_pedometer_step_count(gs_handle, cnt) != 0) {
 		return 1;

@@ -18,7 +18,15 @@ bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 
 //----------------------------------------
+//static uint8_t dmp_ready = 0;
 int mpu_dmp_int = 0;
+//static volatile uint8_t mpu_data_ready = 0;
+short gyro[3], accel[3];
+long quat[4];
+unsigned long timestamp;
+short sensors;
+unsigned char more;
+struct int_param_s mpu_int_param;
 //------------------------------------------
 
 void appSetup() {
@@ -63,6 +71,7 @@ void appLoop() {
 	}
 	if (mpu_dmp_int) {
 		//printf("\r\n1\r\n");
+		dmp_print_once();
 		mpu_dmp_int = 0;
 	}
 }
@@ -140,19 +149,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		doMotionCtrlCycle = 1;
 	}
 }
+/*
+ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+ if (GPIO_Pin == MPU6500_INT_PIN) {
 
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-	if (GPIO_Pin == MPU6500_INT_PIN) {
+ //uint8_t status;
+ //mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
 
-		//uint8_t status;
-		//mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
+ //printf("INT_STATUS = 0x%02X\r\n", status);
+ mpu_dmp_int = 1;
+ }
+ }
+ */
 
-		//printf("INT_STATUS = 0x%02X\r\n", status);
-		mpu_dmp_int = 1;
-	}
-}
-
-void MPU6500_SPIInit() {
+int MPU6500_SPIInit() {
 
 	//------------以下为新加的------------
 	//uint8_t tmp;
@@ -168,16 +178,144 @@ void MPU6500_SPIInit() {
 	//tmp = 0x00;
 	//mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
 	//------------以上为新加的------------
+	int result;
 
+	mpu_int_param.cb = mpu_data_ready;  // motion_driver 里默认函数名是 mpu_data_ready
+	mpu_int_param.pin = MPU6500_INT_PIN;
+	mpu_int_param.lp_exit = 1;
+	mpu_int_param.active_low = 1;
+	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+
+	reg_int_cb(&mpu_int_param); // 注册回调
+
+	// MPU 初始化（motion_driver_6.12 mpu_init 有参数）
+	result = mpu_init(&mpu_int_param);  // 注意：必须传 int_param_s*
+	//if (result)
+	printf("mpu_init(&mpu_int_param) = %d\r\n", result);
+	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+
+	//return result;
+
+	// 设置回调
+
+	/*
+	 result = mpu_init();
+	 if (result) {
+	 printf("mpu_init failed: %d\n", result);
+	 return -1;
+	 }
+	 */
+	// 加载 DMP 固件
+	result = dmp_load_motion_driver_firmware();
+	if (result) {
+		printf("dmp_load_motion_driver_firmware failed: %d\n", result);
+		return -1;
+	}
+	// 配置 DMP 输出
+	result = dmp_enable_feature(
+	DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP | DMP_FEATURE_ANDROID_ORIENT);
+	printf("dmp_enable_feature = %d\r\n", result);
+	result = dmp_set_fifo_rate(20); // 50 Hz
+
+	// 打开 DMP
+	result = mpu_set_dmp_state(1);
+	printf("mpu_set_dmp_state = %d\r\n", result);
+	// 使能中断
+	//mpu_set_int_enabled(1);
+
+	// 使能 MPU 中断
+	result = mpu_set_int_latched(0); // motion_driver_6.12 里没有 mpu_set_int_enabled，使用 mpu_set_int_latched
+	printf("mpu_set_int_latched = %d\r\n", result);
+
+	return 0;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == MPU6500_INT_PIN) {
+		if (mpu_int_param.cb) {
+			mpu_int_param.cb();  // 调用你写的 mpu_data_ready()
+			//printf("do the cb\r\n");
+		}
+		//printf("not do the cb\r\n");
+	}
+}
+
+void mpu_data_ready(void) {
+	mpu_dmp_int = 1;
 }
 
 /* 四元数打印函数 */
 void dmp_print_once() {
+
+	/*
+	 int a = dmp_read_fifo(&gyro[0], &accel[0], &quat[0], &timestamp, &sensors,
+	 &more);
+	 printf("dmp_read_fifo = %d\r\n", a);
+	 if (a == 0) {
+	 if (sensors & INV_WXYZ_QUAT) {
+	 float qw = quat[0] / 1073741824.0f;
+	 float qx = quat[1] / 1073741824.0f;
+	 float qy = quat[2] / 1073741824.0f;
+	 float qz = quat[3] / 1073741824.0f;
+	 printf("Quat: %f %f %f %f\n", qw, qx, qy, qz);
+	 }
+	 if (sensors & INV_XYZ_GYRO) {
+	 printf("Gyro: %d %d %d\n", gyro[0], gyro[1], gyro[2]);
+	 }
+	 if (sensors & INV_XYZ_ACCEL) {
+	 printf("Accel: %d %d %d\n", accel[0], accel[1], accel[2]);
+	 }
+	 }
+	 */
+	do {
+		dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more);
+		//if (dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more)== 0) {}
+	} while (more);
+
+	if (sensors & INV_WXYZ_QUAT) {
+		// 这里再 printf / 处理
+		const float scale = 1.0f / (1L << 30);
+		float q_out[4];
+
+		// 转 float
+		float q0 = quat[0] * scale;
+		float q1 = quat[1] * scale;
+		float q2 = quat[2] * scale;
+		float q3 = quat[3] * scale;
+
+		// 计算模长
+		float norm = sqrtf(q0 * q0 + q1 * q1 + q2 * q2 + q3 * q3);
+
+		// 防止除 0
+		if (norm < 1e-6f) {
+			q_out[0] = 1.0f;
+			q_out[1] = 0.0f;
+			q_out[2] = 0.0f;
+			q_out[3] = 0.0f;
+			return;
+		}
+
+		float inv = 1.0f / norm;
+
+		q_out[0] = q0 * inv;
+		q_out[1] = q1 * inv;
+		q_out[2] = q2 * inv;
+		q_out[3] = q3 * inv;
+		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2],
+				q_out[3]);
+	}
 	//printf("%.4f, %.4f, %.4f, %.4f, ", q0, q1, q2, q3);
 	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
 	//printf("%.5f, %.5f, %.5f", roll, pitch, yaw);
 	//printf("\n");
+
 }
+
+/*
+ static void mpu_data_ready_cb(void) {
+ mpu_data_ready = 1;
+ }
+ */
 
 void cli_init(void) {
 	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);

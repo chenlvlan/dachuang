@@ -6,6 +6,7 @@
  */
 
 #include "app.h"
+#include "arm_math.h"
 
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };

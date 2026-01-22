@@ -7,7 +7,6 @@
 
 #include "app.h"
 
-//#define MPU6500_INTERFACE_SPI
 #define CLI_BUF_LEN 64
 
 static char cli_buf[CLI_BUF_LEN];
@@ -18,10 +17,8 @@ bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 
 //----------------------------------------
-//static uint8_t dmp_ready = 0;
 int mpu_dmp_int = 0;
 int int_count = 0;
-//static volatile uint8_t mpu_data_ready = 0;
 short gyro[3], accel[3];
 long quat[4];
 unsigned long timestamp;
@@ -54,13 +51,9 @@ void appSetup() {
 	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
 	returnToOrigin(0.3, 0.2, 3000); //回原点
 
-	//printf("going to turn on the irq\r\n");
 	//开启6500的中断捕获
-	//HAL_NVIC_SetPriority(EXTI3_IRQn, 0, 0);
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
-	//printf("irq is on\r\n");
-
 }
 
 void appLoop() {

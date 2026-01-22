@@ -20,6 +20,7 @@ motorDataRead_t JMDataRead[4] = { 0 };
 //----------------------------------------
 //static uint8_t dmp_ready = 0;
 int mpu_dmp_int = 0;
+int int_count = 0;
 //static volatile uint8_t mpu_data_ready = 0;
 short gyro[3], accel[3];
 long quat[4];
@@ -103,20 +104,10 @@ void returnToOrigin(float speed, float torque, uint32_t timeout) {
 	JM_VelMode(idRF, speed);
 	JM_VelMode(idRR, speed);
 
-//float deltaPos[4][25];
-//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
-//了原点，时间一到直接设置当前为原点
+	//float deltaPos[4][25];
+	//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
+	//了原点，时间一到直接设置当前为原点
 
-	/*
-	 uint32_t startTime = HAL_GetTick(); //开始时间
-	 while (HAL_GetTick() - startTime <= timeout) { //在超时时间以内的话
-	 //这里面也跑着运动控制环
-	 if (doMotionCtrlCycle == 1) {
-	 doMotionCtrlCycle == 0;
-
-	 }
-	 }
-	 */
 	HAL_Delay(timeout);
 	JM_PosRelaMode(idRF, 0.2);	//右侧两个电机转至右边的腿分开
 	JM_PosRelaMode(idRR, 0.2);
@@ -149,62 +140,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		doMotionCtrlCycle = 1;
 	}
 }
-/*
- void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
- if (GPIO_Pin == MPU6500_INT_PIN) {
-
- //uint8_t status;
- //mpu6500_get_reg(&g_mpu6500, 0x3A, &status, 1);  // 关键！
-
- //printf("INT_STATUS = 0x%02X\r\n", status);
- mpu_dmp_int = 1;
- }
- }
- */
 
 int MPU6500_SPIInit() {
-
-	//------------以下为新加的------------
-	//uint8_t tmp;
-
-	// 清中断
-	//mpu6500_get_reg(&g_mpu6500, 0x3A, &tmp, 1);
-
-	// DMP / FIFO 中断
-	//tmp = 0x02;  // FIFO_OFLOW_EN / DMP_INT_EN 由 DMP 内部控制
-	//mpu6500_set_reg(&g_mpu6500, 0x38, &tmp, 1);
-
-	// INT 引脚：非锁存，读状态清中断
-	//tmp = 0x00;
-	//mpu6500_set_reg(&g_mpu6500, 0x37, &tmp, 1);
-	//------------以上为新加的------------
 	int result;
 
-	mpu_int_param.cb = mpu_data_ready;  // motion_driver 里默认函数名是 mpu_data_ready
+	mpu_int_param.cb = mpu_data_ready;
 	mpu_int_param.pin = MPU6500_INT_PIN;
 	mpu_int_param.lp_exit = 1;
 	mpu_int_param.active_low = 1;
-	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
-
 	reg_int_cb(&mpu_int_param); // 注册回调
-
 	// MPU 初始化（motion_driver_6.12 mpu_init 有参数）
 	result = mpu_init(&mpu_int_param);  // 注意：必须传 int_param_s*
-	//if (result)
 	printf("mpu_init(&mpu_int_param) = %d\r\n", result);
 	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
 
-	//return result;
+	//mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL);
 
-	// 设置回调
-
-	/*
-	 result = mpu_init();
-	 if (result) {
-	 printf("mpu_init failed: %d\n", result);
-	 return -1;
-	 }
-	 */
 	// 加载 DMP 固件
 	result = dmp_load_motion_driver_firmware();
 	if (result) {
@@ -212,19 +163,13 @@ int MPU6500_SPIInit() {
 		return -1;
 	}
 	// 配置 DMP 输出
-	result = dmp_enable_feature(
-	DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP | DMP_FEATURE_ANDROID_ORIENT);
+	//result = dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP| DMP_FEATURE_ANDROID_ORIENT);
+	result = dmp_enable_feature( DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL);
 	printf("dmp_enable_feature = %d\r\n", result);
-	result = dmp_set_fifo_rate(20); // 50 Hz
-
-	// 打开 DMP
-	result = mpu_set_dmp_state(1);
+	result = dmp_set_fifo_rate(50); // 50 Hz
+	result = mpu_set_dmp_state(1); // 打开 DMP
 	printf("mpu_set_dmp_state = %d\r\n", result);
-	// 使能中断
-	//mpu_set_int_enabled(1);
-
-	// 使能 MPU 中断
-	result = mpu_set_int_latched(0); // motion_driver_6.12 里没有 mpu_set_int_enabled，使用 mpu_set_int_latched
+	result = mpu_set_int_latched(0); // 使能 MPU 中断
 	printf("mpu_set_int_latched = %d\r\n", result);
 
 	return 0;
@@ -232,11 +177,13 @@ int MPU6500_SPIInit() {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == MPU6500_INT_PIN) {
-		if (mpu_int_param.cb) {
-			mpu_int_param.cb();  // 调用你写的 mpu_data_ready()
-			//printf("do the cb\r\n");
+		int_count++;
+		if (int_count >= 4) {
+			int_count=0;
+			if (mpu_int_param.cb) {
+				mpu_int_param.cb();  // 调用你写的 mpu_data_ready()
+			}
 		}
-		//printf("not do the cb\r\n");
 	}
 }
 
@@ -246,30 +193,8 @@ void mpu_data_ready(void) {
 
 /* 四元数打印函数 */
 void dmp_print_once() {
-
-	/*
-	 int a = dmp_read_fifo(&gyro[0], &accel[0], &quat[0], &timestamp, &sensors,
-	 &more);
-	 printf("dmp_read_fifo = %d\r\n", a);
-	 if (a == 0) {
-	 if (sensors & INV_WXYZ_QUAT) {
-	 float qw = quat[0] / 1073741824.0f;
-	 float qx = quat[1] / 1073741824.0f;
-	 float qy = quat[2] / 1073741824.0f;
-	 float qz = quat[3] / 1073741824.0f;
-	 printf("Quat: %f %f %f %f\n", qw, qx, qy, qz);
-	 }
-	 if (sensors & INV_XYZ_GYRO) {
-	 printf("Gyro: %d %d %d\n", gyro[0], gyro[1], gyro[2]);
-	 }
-	 if (sensors & INV_XYZ_ACCEL) {
-	 printf("Accel: %d %d %d\n", accel[0], accel[1], accel[2]);
-	 }
-	 }
-	 */
 	do {
 		dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more);
-		//if (dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more)== 0) {}
 	} while (more);
 
 	if (sensors & INV_WXYZ_QUAT) {
@@ -304,18 +229,8 @@ void dmp_print_once() {
 		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2],
 				q_out[3]);
 	}
-	//printf("%.4f, %.4f, %.4f, %.4f, ", q0, q1, q2, q3);
-	//printf("RPY: R=%6.2f P=%6.2f Y=%6.2f\r\n", roll, pitch, yaw);
-	//printf("%.5f, %.5f, %.5f", roll, pitch, yaw);
-	//printf("\n");
 
 }
-
-/*
- static void mpu_data_ready_cb(void) {
- mpu_data_ready = 1;
- }
- */
 
 void cli_init(void) {
 	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);

@@ -66,8 +66,8 @@ IKStatus_t fivebar_inverse_kinematics(float x, float y, const FiveBarGeom_t *g,
 	/* 选择膝盖朝后（凸结构） */
 	float th_r = phi_r + alpha_r;
 
-	th_f = th_f;
-	th_r = 0.0f - th_r; //关节角取反
+	th_f = 0.0f - (th_f + M_PI);
+	th_r = th_r - M_PI; //关节角取反
 
 	/* ---------- 关节限位 ---------- */
 	if (lim) {

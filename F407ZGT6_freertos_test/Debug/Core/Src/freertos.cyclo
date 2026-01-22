@@ -1,4 +1,4 @@
-../Core/Src/freertos.c:71:6:MX_FREERTOS_Init	1
-../Core/Src/freertos.c:122:6:StartDefaultTask	1
-../Core/Src/freertos.c:133:6:task_fast	1
-../Core/Src/freertos.c:139:6:task_slow	1
+../Core/Src/freertos.c:74:6:MX_FREERTOS_Init	1
+../Core/Src/freertos.c:124:6:StartDefaultTask	1
+../Core/Src/freertos.c:136:6:task_fast	1
+../Core/Src/freertos.c:143:6:task_slow	1

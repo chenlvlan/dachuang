@@ -67,12 +67,16 @@ int i2c_read(unsigned char slave_addr, unsigned char reg_addr,
 void delay_ms(unsigned long ms);
 void get_ms(unsigned long *count);
 
+#include "stm32f4xx_hal.h"
+#define MPU_CS_LOW()   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_RESET)
+#define MPU_CS_HIGH()  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET)
 #define MPU6500_INT_PIN GPIO_PIN_3
 #define MPU6500
 #ifndef min
 #define min(a,b) ((a) < (b) ? (a) : (b))
 #endif
 int reg_int_cb(struct int_param_s *int_param);
+extern SPI_HandleTypeDef hspi1;
 
 /* Set up APIs */
 int mpu_init(struct int_param_s *int_param);

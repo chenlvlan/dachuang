@@ -39,17 +39,35 @@
  */
 
 //------------------------------------new begin-------------------------------------
-#include "mpu6500_port.h"
-#include "stm32f4xx_hal.h"
+//#include "mpu6500_port.h"
 int i2c_write(unsigned char slave_addr, unsigned char reg_addr,
 		unsigned char length, unsigned char const *data) {
-	mpu_spi_write(reg_addr, data, length);
+	//mpu_spi_write(reg_addr, data, length);
+	MPU_CS_LOW();
+	// 写寄存器地址（MSB = 0）
+	uint8_t reg = reg_addr & 0x7F;
+	HAL_SPI_Transmit(&hspi1, &reg, 1, HAL_MAX_DELAY);
+	// 连续写数据
+	if (length > 0) {
+		HAL_SPI_Transmit(&hspi1, (uint8_t*) data, length, HAL_MAX_DELAY);
+	}
+	MPU_CS_HIGH();
 	return 0;
 }
 
 int i2c_read(unsigned char slave_addr, unsigned char reg_addr,
 		unsigned char length, unsigned char *data) {
-	mpu_spi_read(reg_addr, data, length);
+	//mpu_spi_read(reg_addr, data, length);
+	uint8_t reg = reg_addr | 0x80;   // 读：MSB = 1
+	uint8_t dummy = 0xFF;
+	MPU_CS_LOW();
+	// 发送寄存器地址
+	HAL_SPI_Transmit(&hspi1, &reg, 1, HAL_MAX_DELAY);
+	// 关键：通过“发送 dummy”来产生 SPI clock，同时读数据
+	for (uint16_t i = 0; i < length; i++) {
+		HAL_SPI_TransmitReceive(&hspi1, &dummy, &data[i], 1, HAL_MAX_DELAY);
+	}
+	MPU_CS_HIGH();
 	return 0;
 }
 

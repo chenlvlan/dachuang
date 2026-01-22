@@ -14,6 +14,7 @@
 #include "../MPU6500/inv_mpu.h"
 #include "../MPU6500/inv_mpu_dmp_motion_driver.h"
 #include <stdbool.h>
+#include "cli.h"
 
 #define MPU6500_INT_PIN GPIO_PIN_3
 

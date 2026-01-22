@@ -7,12 +7,6 @@
 
 #include "app.h"
 
-#define CLI_BUF_LEN 64
-
-static char cli_buf[CLI_BUF_LEN];
-static uint8_t cli_idx = 0;
-static uint8_t cli_rx_char;
-
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 
@@ -35,7 +29,7 @@ void appSetup() {
 	cli_init();
 
 	printf("CLI ready, type 'help'\r\n");
-	HAL_Delay(150); //等待供电稳定
+	//HAL_Delay(150); //等待供电稳定
 	CommCan_Init(&hcan1); //关节电机can1通信初始化
 	CommCan_Init(&hcan2); //关节电机can2通信初始化
 	HAL_Delay(100);
@@ -65,9 +59,10 @@ void appLoop() {
 	}
 	if (mpu_dmp_int) {
 		//printf("\r\n1\r\n");
-		dmp_print_once();
 		mpu_dmp_int = 0;
+		dmp_print_once();
 	}
+	cli_poll();
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用
@@ -172,7 +167,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == MPU6500_INT_PIN) {
 		int_count++;
 		if (int_count >= 4) {
-			int_count=0;
+			int_count = 0;
 			if (mpu_int_param.cb) {
 				mpu_int_param.cb();  // 调用你写的 mpu_data_ready()
 			}
@@ -219,53 +214,7 @@ void dmp_print_once() {
 		q_out[1] = q1 * inv;
 		q_out[2] = q2 * inv;
 		q_out[3] = q3 * inv;
-		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2],
-				q_out[3]);
+		//printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2], q_out[3]);
 	}
 
-}
-
-void cli_init(void) {
-	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
-}
-
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart != &huart1)
-		return;
-
-	//printf("aaa\r\n");
-	if (cli_rx_char == '\r' || cli_rx_char == '\n') {
-		cli_buf[cli_idx] = '\0';
-		cli_idx = 0;
-
-		cli_handle_command(cli_buf);
-	} else {
-		if (cli_idx < CLI_BUF_LEN - 1) {
-			cli_buf[cli_idx++] = cli_rx_char;
-		}
-	}
-
-	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
-}
-
-void cli_handle_command(char *cmd) {
-	if (strlen(cmd) == 0)
-		return;
-
-	if (strcmp(cmd, "help") == 0) {
-		printf("Commands:\r\n");
-		printf("  delay           show delay(ms)\r\n");
-		printf("  delay <num>     set delay(ms)\r\n");
-	} else if (strncmp(cmd, "delay", 5) == 0) {
-		uint32_t val;
-
-		if (sscanf(cmd, "delay %lu", &val) == 1) {
-			//g_loop_delay_ms = val;
-			//printf("delay set to %lu ms\r\n", g_loop_delay_ms);
-		} else {
-			//printf("delay = %lu ms\r\n", g_loop_delay_ms);
-		}
-	} else {
-		printf("unknown cmd: %s\r\n", cmd);
-	}
 }

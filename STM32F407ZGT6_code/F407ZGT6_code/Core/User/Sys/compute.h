@@ -10,6 +10,7 @@
 
 #include <math.h>
 #include <stdbool.h>
+#include "arm_math.h"
 
 #define EPS 1e-6f
 

@@ -215,7 +215,7 @@ void dmp_print_once() {
 		q_out[1] = q1 * inv;
 		q_out[2] = q2 * inv;
 		q_out[3] = q3 * inv;
-		//printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2], q_out[3]);
+		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2], q_out[3]);
 	}
 
 }

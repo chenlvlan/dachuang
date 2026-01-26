@@ -41,4 +41,9 @@ void cli_init(void);
 void cli_handle_command(char *cmd);
 void refreshAll(uint8_t id);
 
+void control_init(void);
+void control_loop(float pitch_raw);
+void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
+		float *yaw);
+
 #endif /* USER_SYS_APP_H_ */

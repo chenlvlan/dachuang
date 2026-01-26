@@ -54,6 +54,13 @@ int count = 0;
 void loop()
 {
 	runFOC();
+	DFOC_M0_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	DFOC_M0_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	DFOC_M0_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
+
+	DFOC_M1_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	DFOC_M1_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	DFOC_M1_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
 	if (motor0.mode == 0 || motor1.mode == 0) // 因为电路的原因，不可能单独禁用一个电机
 	{
 		DFOC_disable();
@@ -81,7 +88,7 @@ void loop()
 			break;
 		case 2:
 			// 力矩模式
-			DFOC_M0_setTorque(motor1.value);
+			DFOC_M1_setTorque(motor1.value);
 		default:
 			break;
 		}
@@ -92,7 +99,7 @@ void loop()
 	// 力位（加入电流环后）
 	//  DFOC_M0_SET_ANGLE_PID(0.5,0,0.003,100000,0.1);
 	//  DFOC_M0_SET_CURRENT_PID(1.25,50,0,100000);
-	//  DFOC_M0_set_Force_Angle(serial_motor_target());
+	// DFOC_M0_set_Force_Angle(serial_motor_target());
 	//  DFOC_M1_SET_ANGLE_PID(0.5,0,0.003,100000,0.1);
 	//  DFOC_M1_SET_CURRENT_PID(1.25,50,0,100000);
 	//  DFOC_M1_set_Force_Angle(serial_motor_target());
@@ -131,16 +138,16 @@ void loop()
 			count = 0;
 			// Serial.println(inputString);
 			//  Serial.printf("%f\n", DFOC_M0_Current());
-			//  Serial.printf("%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\n", DFOC_M0_Current(), DFOC_M1_Current(), DFOC_M0_Angle(), DFOC_M0_Velocity(), DFOC_M1_Angle(), DFOC_M1_Velocity());
+			Serial.printf("%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\t%.2lf\n", DFOC_M0_Current(), DFOC_M0_Angle(), DFOC_M0_Velocity(), DFOC_M1_Current(), DFOC_M1_Angle(), DFOC_M1_Velocity());
 			//  Serial.printf("%f,%f,%f\n", DFOC_M0_Angle(), S0_electricalAngle(),S1_electricalAngle());
 			//  Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
 		}
 	}
 
 	// 串口接收处理
-	while (Serial1.available())
+	while (Serial.available())
 	{
-		char inChar = (char)Serial1.read();
+		char inChar = (char)Serial.read();
 
 		if (inChar == '\0')
 		{

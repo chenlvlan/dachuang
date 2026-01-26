@@ -16,11 +16,24 @@ int mpu_dmp_int = 0;
 int int_count = 0;
 short gyro[3], accel[3];
 long quat[4];
+float quat_nom[4];
 unsigned long timestamp;
 short sensors;
 unsigned char more;
 struct int_param_s mpu_int_param;
+float roll, yaw, pitch;
 //------------------------------------------
+
+#define CTRL_DT   0.02f   // 20ms, 50Hz
+
+arm_pid_instance_f32 pid_pitch;
+
+/* 二阶低通滤波（IMU pitch） */
+arm_biquad_cascade_df2T_instance_f32 lp_pitch;
+float lp_coeffs[5] = { 0.0675f, 0.1349f, 0.0675f,   // b0 b1 b2
+		-1.1430f, 0.4128f             // a1 a2
+		};
+float lp_state[4];
 
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
@@ -49,19 +62,19 @@ void appSetup() {
 	//开启6500的中断捕获
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
+	control_init();
 }
 
 void appLoop() {
-	//printf("loop begin  ");
-	//这个是主程序
 	if (doMotionCtrlCycle == 1) {
 		doMotionCtrlCycle = 0;
 		motionCtrlCycle();
 	}
 	if (mpu_dmp_int) {
-		//printf("\r\n1\r\n");
 		mpu_dmp_int = 0;
 		dmp_print_once();
+		quat2euler(quat[0], quat[1], quat[2], quat[3], &roll, &pitch, &yaw);
+		control_loop(pitch);
 	}
 	cli_poll();
 }
@@ -208,14 +221,78 @@ void dmp_print_once() {
 			q_out[3] = 0.0f;
 			return;
 		}
-
 		float inv = 1.0f / norm;
-
 		q_out[0] = q0 * inv;
 		q_out[1] = q1 * inv;
 		q_out[2] = q2 * inv;
 		q_out[3] = q3 * inv;
-		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2], q_out[3]);
+		quat_nom[0] = q_out[0];
+		quat_nom[1] = q_out[1];
+		quat_nom[2] = q_out[2];
+		quat_nom[3] = q_out[3];
+		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2],
+				q_out[3]);
+	}
+}
+
+void control_init(void) {
+	/* -------- PID -------- */
+	pid_pitch.Kp = 25.0f;
+	pid_pitch.Ki = 3.0f;
+	pid_pitch.Kd = 0.5f;
+	arm_pid_init_f32(&pid_pitch, 1);
+
+	/* -------- Low-pass filter -------- */
+	arm_biquad_cascade_df2T_init_f32(&lp_pitch, 1, lp_coeffs, lp_state);
+}
+
+void control_loop(float pitch_raw) {
+	float pitch_filt;
+	float pitch_ref = 0.0f;
+
+	float u;             // 轮子控制量
+
+	/* 1. 读取 IMU */
+	//pitch_raw = imu_get_pitch_rad();
+
+	/* 2. 低通滤波 */
+	arm_biquad_cascade_df2T_f32(&lp_pitch, &pitch_raw, &pitch_filt, 1);
+
+	/* 3. PID */
+	float err = pitch_ref - pitch_filt;
+	u = arm_pid_f32(&pid_pitch, err);
+
+	/* 4. 限幅（非常重要） */
+	u = clampf(u, -MAX_WHEEL_TORQUE, MAX_WHEEL_TORQUE);
+
+	/* 5. 给轮子 */
+	//wheel_set_torque(u, u);
+}
+
+void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
+		float *yaw) {
+	// 1. 计算俯仰角 Pitch（绕Y轴）
+	float sin_pitch = 2 * (w * y - z * x);
+	// 限制sin_pitch范围，避免asin因浮点误差返回NaN
+	if (fabs(sin_pitch) >= 1.0f) {
+		*pitch = M_PI / 2 * (sin_pitch > 0 ? 1 : -1);
+	} else {
+		*pitch = asin(sin_pitch);
 	}
 
+	// 2. 计算横滚角 Roll（绕X轴）
+	float cos_pitch = cos(*pitch);
+	float sin_roll = 2 * (w * x + y * z);
+	float cos_roll = 1 - 2 * (x * x + y * y);
+	*roll = atan2(sin_roll, cos_roll);
+
+	// 3. 计算偏航角 Yaw（绕Z轴）
+	float sin_yaw = 2 * (w * z + x * y);
+	float cos_yaw = 1 - 2 * (y * y + z * z);
+	*yaw = atan2(sin_yaw, cos_yaw);
+
+	// 弧度转角度（如需弧度，注释这3行）
+	*roll *= 180.0f / M_PI;
+	*pitch *= 180.0f / M_PI;
+	*yaw *= 180.0f / M_PI;
 }

@@ -13,6 +13,7 @@
 #include "misc.h"
 #include "../MPU6500/inv_mpu.h"
 #include "../MPU6500/inv_mpu_dmp_motion_driver.h"
+#include "compute.h"
 #include <stdbool.h>
 #include "cli.h"
 

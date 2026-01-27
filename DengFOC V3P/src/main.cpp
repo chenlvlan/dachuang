@@ -7,6 +7,8 @@
 
 #include "DengFOC.h"
 #include <Arduino.h>
+#include "esp_system.h" // 核心复位API
+#include "esp_pm.h"		// 深度复位相关（可选）
 
 #define _constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 
@@ -104,6 +106,12 @@ void loop()
 		DFOC_M0_setTorque(motorCmd.m0target / torqueConstant);
 		DFOC_M1_setTorque(motorCmd.m1target / torqueConstant);
 	}
+	else if (motorCmd.mode == 10)
+	{
+		// ESP.restart();
+		// esp_reset_hw();
+		ESP.deepSleep(0);
+	}
 	// DFOC_M0_setTorque(serial_motor_target());
 	// DFOC_M1_setTorque(serial_motor_target());
 	// DFOC_M0_setVelocity(serial_motor_target());
@@ -112,16 +120,19 @@ void loop()
 	count++;
 	if (count > 100)
 	{
+		// Serial.println(motorCmd.m0target);
 		count = 0;
 		// Serial.printf("%f\n", DFOC_M0_Current());
 		// Serial.printf("%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n", DFOC_M0_Current(), DFOC_M1_Current(), DFOC_M0_Angle(), DFOC_M0_Velocity(), serial_motor_target());
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Angle(), S0_electricalAngle(),S1_electricalAngle());
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
-		Serial.printf("I0=%.3f\tω0=%.3f\tI1=%.3f\tω1=%.3f\n", DFOC_M0_Current(), DFOC_M0_Velocity(), DFOC_M1_Current(), DFOC_M1_Velocity());
+		Serial.printf("M0tar=%.3f\tI0=%.3f\tω0=%.3f\tM1tar=%.3f\tI1=%.3f\tω1=%.3f\n", motorCmd.m0target, DFOC_M0_Current(), DFOC_M0_Velocity(), motorCmd.m1target, DFOC_M1_Current(), DFOC_M1_Velocity());
 	}
 	// 接收串口
 	// serialReceiveUserCommand();
 	comm();
+
+	// Serial.println(motorCmd.m0target);
 }
 
 void comm()
@@ -170,6 +181,12 @@ void comm()
 				uint32_t m1byte = (uint32_t)buf[8] << 24 | (uint32_t)buf[7] << 16 | (uint32_t)buf[6] << 8 | (uint32_t)buf[5];
 				memcpy(&motorCmd.m0target, &m0byte, 4);
 				memcpy(&motorCmd.m1target, &m1byte, 4);
+				if (isnanf(motorCmd.m0target) || isnanf(motorCmd.m1target))
+				{
+					motorCmd.m0target = 0;
+					motorCmd.m1target = 0;
+				}
+				motorCmd.m1target = (0 - motorCmd.m1target);
 				printPara();
 			}
 			else

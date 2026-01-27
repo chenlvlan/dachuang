@@ -8,6 +8,8 @@
 #include "app.h"
 #include "arm_math.h"
 
+#define MAX_WHEEL_TORQUE 0.11f
+
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 
@@ -24,6 +26,10 @@ unsigned char more;
 struct int_param_s mpu_int_param;
 float roll, yaw, pitch;
 //------------------------------------------
+float pitch_filt;
+float pitch_ref = 0.0f;
+
+float u;             // 轮子控制量
 
 #define CTRL_DT   0.02f   // 20ms, 50Hz
 
@@ -34,11 +40,15 @@ arm_biquad_cascade_df2T_instance_f32 lp_pitch;
 float lp_coeffs[5] = { 0.0675f, 0.1349f, 0.0675f,   // b0 b1 b2
 		-1.1430f, 0.4128f             // a1 a2
 		};
-float lp_state[4];
+float lp_state[6] = { 0 };
 
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
+	motorCmd.mode = 10;
+	motorCmd.m0target = 0;
+	motorCmd.m1target = 0;
+	WM_Send(motorCmd);
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	MPU6500_SPIInit();
 	cli_init();
@@ -64,6 +74,7 @@ void appSetup() {
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 	control_init();
+	HAL_Delay(3000);
 }
 
 void appLoop() {
@@ -74,8 +85,9 @@ void appLoop() {
 	if (mpu_dmp_int) {
 		mpu_dmp_int = 0;
 		dmp_print_once();
-		quat2euler(quat[0], quat[1], quat[2], quat[3], &roll, &pitch, &yaw);
-		printf("%.5f, %.5f, %.5f\r\n", roll, pitch, yaw);
+		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
+				&pitch, &yaw);
+		printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
 		control_loop(pitch);
 	}
 	cli_poll();
@@ -197,7 +209,6 @@ void mpu_data_ready(void) {
 	mpu_dmp_int = 1;
 }
 
-/* 四元数打印函数 */
 void dmp_print_once() {
 	do {
 		dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more);
@@ -231,63 +242,75 @@ void dmp_print_once() {
 		q_out[2] = q2 * inv;
 		q_out[3] = q3 * inv;
 		quat_nom[0] = q_out[0];
-		quat_nom[1] = q_out[1];
-		quat_nom[2] = q_out[2];
+		quat_nom[1] = -q_out[1];
+		quat_nom[2] = -q_out[2];
 		quat_nom[3] = q_out[3];
-		printf("%.5f, %.5f, %.5f, %.5f, ", q_out[0], q_out[1], q_out[2], q_out[3]);
+		//printf("%.5f, %.5f, %.5f, %.5f, ", quat_nom[0], quat_nom[1],
+		//		quat_nom[2], quat_nom[3]);
 	}
 }
 
 void control_init(void) {
 	/* -------- PID -------- */
-	pid_pitch.Kp = 25.0f;
-	pid_pitch.Ki = 3.0f;
-	pid_pitch.Kd = 0.5f;
+	pid_pitch.Kp = 0.025f;
+	pid_pitch.Ki = 0.0f / CTRL_DT;
+	pid_pitch.Kd = 0.0f / CTRL_DT;
 	arm_pid_init_f32(&pid_pitch, 1);
 
 	/* -------- Low-pass filter -------- */
-	arm_biquad_cascade_df2T_init_f32(&lp_pitch, 1, lp_coeffs, lp_state);
+	//arm_biquad_cascade_df2T_init_f32(&lp_pitch, 1, lp_coeffs, lp_state);
 }
 
 void control_loop(float pitch_raw) {
-	float pitch_filt;
-	float pitch_ref = 0.0f;
-
-	float u;             // 轮子控制量
 
 	/* 1. 读取 IMU */
 	//pitch_raw = imu_get_pitch_rad();
 	/* 2. 低通滤波 */
-	arm_biquad_cascade_df2T_f32(&lp_pitch, &pitch_raw, &pitch_filt, 1);
+	//arm_biquad_cascade_df2T_f32(&lp_pitch, &pitch_raw, &pitch_filt, 1);
+	float alpha = 0.9f; // 滤波系数，0~1
+	pitch_filt = (1 - alpha) * pitch_filt + alpha * pitch_raw;
+	//pitch_filt = pitch_raw;
+	printf("%.5f, ", pitch_filt);
 
 	/* 3. PID */
 	float err = pitch_ref - pitch_filt;
 	u = arm_pid_f32(&pid_pitch, err);
 
 	/* 4. 限幅（非常重要） */
-	//u = clampf(u, -MAX_WHEEL_TORQUE, MAX_WHEEL_TORQUE);
+	u = clampf(u, -MAX_WHEEL_TORQUE, MAX_WHEEL_TORQUE);
 	/* 5. 给轮子 */
 	//wheel_set_torque(u, u);
+	printf("%.5f\r\n", u);
+	motorCmd.mode = 2;
+	motorCmd.m0target = u;
+	motorCmd.m1target = u;
+	WM_Send(motorCmd);
 }
 
-void quat2euler(float q0, float q1, float q2, float q3, float *roll,
-		float *pitch, float *yaw) {
-	/* Roll (X-axis rotation) */
-	float sinr_cosp = 2.0f * (q0 * q1 + q2 * q3);
-	float cosr_cosp = 1.0f - 2.0f * (q1 * q1 + q2 * q2);
+void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
+		float *yaw) {
+	/* -------- Roll (X axis) -------- */
+	float sinr_cosp = 2.0f * (w * x + y * z);
+	float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
 	*roll = atan2f(sinr_cosp, cosr_cosp);
 
-	/* Pitch (Y-axis rotation) */
-	float sinp = 2.0f * (q0 * q2 - q3 * q1);
-	if (fabsf(sinp) >= 1.0f)
-		*pitch = copysignf(M_PI / 2.0f, sinp);  // 奇异点处理
+	/* -------- Pitch (Y axis) -------- */
+	float sinp = 2.0f * (w * y - z * x);
+	if (sinp >= 1.0f)
+		*pitch = M_PI / 2.0f;
+	else if (sinp <= -1.0f)
+		*pitch = -M_PI / 2.0f;
 	else
 		*pitch = asinf(sinp);
 
-	/* Yaw (Z-axis rotation) */
-	float siny_cosp = 2.0f * (q0 * q3 + q1 * q2);
-	float cosy_cosp = 1.0f - 2.0f * (q2 * q2 + q3 * q3);
+	/* -------- Yaw (Z axis) -------- */
+	float siny_cosp = 2.0f * (w * z + x * y);
+	float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
 	*yaw = atan2f(siny_cosp, cosy_cosp);
+
+	*roll *= 57.29578f;
+	*yaw *= 57.29578f;
+	*pitch *= 57.29578f;
 }
 
 void WM_Send(motorCommand mot_cmd) {

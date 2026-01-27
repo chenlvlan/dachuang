@@ -9,7 +9,7 @@
 
 //#define DSP
 
-static inline float clampf(float x, float min, float max) {
+float clampf(float x, float min, float max) {
 	if (x < min)
 		return min;
 	if (x > max)

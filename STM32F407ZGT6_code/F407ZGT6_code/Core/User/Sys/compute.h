@@ -40,4 +40,6 @@ IKStatus_t fivebar_inverse_kinematics(float x, float y,         // 足端目标�
 		float *theta_r                         // 输出：后腿角度（rad）
 		);
 
+float clampf(float x, float min, float max);
+
 #endif /* USER_SYS_COMPUTE_H_ */

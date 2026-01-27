@@ -30,11 +30,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
-#include "test.h"
-#include "../User/Sys/misc.h"
-#include "../User/Sys/app.h"
-#include "../User/Comm/comm_can.h"
+//#include "test.h"
 #include <stdio.h>
+
+#include "../user/joint_motor/comm_can.h"
+#include "../user/sys/app.h"
+//#include "../user/sys/misc.h.txt"
 //#include "../User/Comm/not_use/comm_rs485.h.1"
 
 /* USER CODE END Includes */

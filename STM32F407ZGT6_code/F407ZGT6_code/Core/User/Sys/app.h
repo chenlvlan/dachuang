@@ -9,15 +9,13 @@
 #define USER_SYS_APP_H_
 
 #include "main.h"
-#include "midware.h"
-#include "misc.h"
-#include "../MPU6500/inv_mpu.h"
-#include "../MPU6500/inv_mpu_dmp_motion_driver.h"
-#include "compute.h"
 #include <stdbool.h>
-#include "cli.h"
 
-#define MPU6500_INT_PIN GPIO_PIN_3
+#include "../mpu6500/mpu6500.h"
+#include "cli.h"
+#include "compute.h"
+#include "../joint_motor/joint_motor.h"
+//#include "midware.h.txt"
 
 extern bool doMotionCtrlCycle;
 extern UART_HandleTypeDef huart4;
@@ -33,10 +31,8 @@ void returnToOrigin(float speed, float torque, uint32_t timeout);
 void appLoop();
 void appSetup();
 void motionCtrlCycle();
+void HVHP(bool isEN);
 
-int MPU6500_SPIInit();
-void dmp_print_once();
-void mpu_data_ready(void);
 
 void cli_init(void);
 void cli_handle_command(char *cmd);

@@ -14,15 +14,17 @@
  *      @details    All functions are preceded by the dmp_ prefix to
  *                  differentiate among MPL and general driver function calls.
  */
+#include "inv_mpu_dmp_motion_driver.h"
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "inv_mpu.h"
-#include "inv_mpu_dmp_motion_driver.h"
+
 #include "dmpKey.h"
 #include "dmpmap.h"
+#include "inv_mpu.h"
 //#include "core_cm4.h"   // F4
 
 #define __no_operation() __NOP()

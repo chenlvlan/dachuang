@@ -9,8 +9,10 @@
 #define USER_SYS_CLI_H_
 
 #include <stdint.h>
+
 #include "compute.h"
-#include "midware.h"
+#include "../joint_motor/joint_motor.h"
+//#include "midware.h"
 
 /* ================= 配置 ================= */
 

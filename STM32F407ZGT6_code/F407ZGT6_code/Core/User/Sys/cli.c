@@ -6,6 +6,7 @@
  */
 
 #include "cli.h"
+
 #include "usart.h"     // huart1
 #include <string.h>
 #include <stdio.h>

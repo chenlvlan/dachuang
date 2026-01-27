@@ -2,16 +2,13 @@
 #define __COMM_CAN_H
 
 #include "main.h"
-#include "../Sys/misc.h"
 
-//这个放在了misc里面定义
-/*
- typedef struct
- {
- CAN_RxHeaderTypeDef RxHead;     //can通信协议头
- uint8_t canRxBuf[8];            //can通信接收到的数据包
- }CanRxMessage_t;
- */
+//#include "../sys/misc.h.txt"
+
+typedef struct {
+	CAN_RxHeaderTypeDef RxHead;     //can通信协议头
+	uint8_t canRxBuf[8];            //can通信接收到的数据包
+} CanRxMessage_t;
 
 extern CanRxMessage_t CanRxMessage;
 

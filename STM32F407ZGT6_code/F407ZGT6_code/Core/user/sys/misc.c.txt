@@ -5,6 +5,6 @@
  *      Author: yufei
  */
 
-#include "misc.h"
+#include "misc.h.txt"
 
 

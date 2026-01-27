@@ -1,4 +1,5 @@
-#include "comm_can.h"
+#include "../joint_motor/comm_can.h"
+
 #include "can.h"
 #include "string.h"
 #include "stdio.h"

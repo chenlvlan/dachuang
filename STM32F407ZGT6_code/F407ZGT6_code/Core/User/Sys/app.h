@@ -46,4 +46,11 @@ void control_loop(float pitch_raw);
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 		float *yaw);
 
+typedef struct {
+	uint8_t mode;
+	float m0target;
+	float m1target;
+} motorCommand;
+
+void WM_Send(motorCommand mot_cmd);
 #endif /* USER_SYS_APP_H_ */

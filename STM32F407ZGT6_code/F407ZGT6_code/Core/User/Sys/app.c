@@ -11,6 +11,7 @@
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
 
+motorCommand motorCmd;
 //----------------------------------------
 int mpu_dmp_int = 0;
 int int_count = 0;
@@ -74,9 +75,12 @@ void appLoop() {
 		mpu_dmp_int = 0;
 		dmp_print_once();
 		quat2euler(quat[0], quat[1], quat[2], quat[3], &roll, &pitch, &yaw);
+		printf("%.5f, %.5f, %.5f\r\n", roll, pitch, yaw);
 		control_loop(pitch);
 	}
 	cli_poll();
+
+	//HAL_Delay(1000);
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用
@@ -230,8 +234,7 @@ void dmp_print_once() {
 		quat_nom[1] = q_out[1];
 		quat_nom[2] = q_out[2];
 		quat_nom[3] = q_out[3];
-		printf("%.5f, %.5f, %.5f, %.5f\r\n", q_out[0], q_out[1], q_out[2],
-				q_out[3]);
+		printf("%.5f, %.5f, %.5f, %.5f, ", q_out[0], q_out[1], q_out[2], q_out[3]);
 	}
 }
 
@@ -254,7 +257,6 @@ void control_loop(float pitch_raw) {
 
 	/* 1. 读取 IMU */
 	//pitch_raw = imu_get_pitch_rad();
-
 	/* 2. 低通滤波 */
 	arm_biquad_cascade_df2T_f32(&lp_pitch, &pitch_raw, &pitch_filt, 1);
 
@@ -263,36 +265,36 @@ void control_loop(float pitch_raw) {
 	u = arm_pid_f32(&pid_pitch, err);
 
 	/* 4. 限幅（非常重要） */
-	u = clampf(u, -MAX_WHEEL_TORQUE, MAX_WHEEL_TORQUE);
-
+	//u = clampf(u, -MAX_WHEEL_TORQUE, MAX_WHEEL_TORQUE);
 	/* 5. 给轮子 */
 	//wheel_set_torque(u, u);
 }
 
-void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
-		float *yaw) {
-	// 1. 计算俯仰角 Pitch（绕Y轴）
-	float sin_pitch = 2 * (w * y - z * x);
-	// 限制sin_pitch范围，避免asin因浮点误差返回NaN
-	if (fabs(sin_pitch) >= 1.0f) {
-		*pitch = M_PI / 2 * (sin_pitch > 0 ? 1 : -1);
-	} else {
-		*pitch = asin(sin_pitch);
-	}
+void quat2euler(float q0, float q1, float q2, float q3, float *roll,
+		float *pitch, float *yaw) {
+	/* Roll (X-axis rotation) */
+	float sinr_cosp = 2.0f * (q0 * q1 + q2 * q3);
+	float cosr_cosp = 1.0f - 2.0f * (q1 * q1 + q2 * q2);
+	*roll = atan2f(sinr_cosp, cosr_cosp);
 
-	// 2. 计算横滚角 Roll（绕X轴）
-	float cos_pitch = cos(*pitch);
-	float sin_roll = 2 * (w * x + y * z);
-	float cos_roll = 1 - 2 * (x * x + y * y);
-	*roll = atan2(sin_roll, cos_roll);
+	/* Pitch (Y-axis rotation) */
+	float sinp = 2.0f * (q0 * q2 - q3 * q1);
+	if (fabsf(sinp) >= 1.0f)
+		*pitch = copysignf(M_PI / 2.0f, sinp);  // 奇异点处理
+	else
+		*pitch = asinf(sinp);
 
-	// 3. 计算偏航角 Yaw（绕Z轴）
-	float sin_yaw = 2 * (w * z + x * y);
-	float cos_yaw = 1 - 2 * (y * y + z * z);
-	*yaw = atan2(sin_yaw, cos_yaw);
+	/* Yaw (Z-axis rotation) */
+	float siny_cosp = 2.0f * (q0 * q3 + q1 * q2);
+	float cosy_cosp = 1.0f - 2.0f * (q2 * q2 + q3 * q3);
+	*yaw = atan2f(siny_cosp, cosy_cosp);
+}
 
-	// 弧度转角度（如需弧度，注释这3行）
-	*roll *= 180.0f / M_PI;
-	*pitch *= 180.0f / M_PI;
-	*yaw *= 180.0f / M_PI;
+void WM_Send(motorCommand mot_cmd) {
+	uint8_t buf[10] = { 0 };
+	buf[0] = mot_cmd.mode;
+	memcpy(&buf[1], &mot_cmd.m0target, 4);
+	memcpy(&buf[5], &mot_cmd.m1target, 4);
+	buf[9] = '\n';
+	HAL_UART_Transmit(&huart4, &buf[0], sizeof(buf), HAL_MAX_DELAY);
 }

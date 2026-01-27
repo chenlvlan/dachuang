@@ -8,6 +8,8 @@
 #include "DengFOC.h"
 #include <Arduino.h>
 
+#define _constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
+
 struct motorCommand
 {
 	uint8_t mode;
@@ -18,10 +20,11 @@ struct motorCommand
 motorCommand motorCmd;
 
 uint8_t buf[16] = {0};
-uint8_t *pBuf = &buf[0];
+uint8_t *pBuf;
 String inputString = "";
-const bool isDebug = 1;
+const bool isDebug = 0;
 const uint8_t cmdSource = 1;
+const float torqueConstant = 0.2;
 
 void comm();
 void parseCommand(String cmd);
@@ -29,7 +32,7 @@ void printPara();
 
 void setup()
 {
-
+	pBuf = &buf[0];
 	Serial.begin(115200);					   // 调试串口
 	Serial1.begin(115200, SERIAL_8N1, 16, 17); // 通信串口
 
@@ -83,10 +86,28 @@ void loop()
 	// DFOC_M1_SET_CURRENT_PID(1.2, 0, 0, 100000, 5);
 	// DFOC_M1_SET_CURRENT_PID(1.2, 0, 0, 100000, 5);
 
+	if (motorCmd.mode == 0)
+	{
+		DFOC_disable();
+	}
+	else if (motorCmd.mode == 1)
+	{
+		DFOC_enable();
+		DFOC_M0_setVelocity(motorCmd.m0target);
+		DFOC_M1_setVelocity(motorCmd.m1target);
+	}
+	else if (motorCmd.mode == 2)
+	{
+		DFOC_enable();
+		motorCmd.m0target = _constrain(motorCmd.m0target, -0.11, 0.11);
+		motorCmd.m1target = _constrain(motorCmd.m1target, -0.11, 0.11); // 限制力矩
+		DFOC_M0_setTorque(motorCmd.m0target / torqueConstant);
+		DFOC_M1_setTorque(motorCmd.m1target / torqueConstant);
+	}
 	// DFOC_M0_setTorque(serial_motor_target());
 	// DFOC_M1_setTorque(serial_motor_target());
-	DFOC_M0_setVelocity(serial_motor_target());
-	DFOC_M1_setVelocity(serial_motor_target());
+	// DFOC_M0_setVelocity(serial_motor_target());
+	// DFOC_M1_setVelocity(serial_motor_target());
 
 	count++;
 	if (count > 100)
@@ -96,6 +117,7 @@ void loop()
 		// Serial.printf("%.3f\t%.3f\t%.3f\t%.3f\t%.3f\n", DFOC_M0_Current(), DFOC_M1_Current(), DFOC_M0_Angle(), DFOC_M0_Velocity(), serial_motor_target());
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Angle(), S0_electricalAngle(),S1_electricalAngle());
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
+		Serial.printf("I0=%.3f\tω0=%.3f\tI1=%.3f\tω1=%.3f\n", DFOC_M0_Current(), DFOC_M0_Velocity(), DFOC_M1_Current(), DFOC_M1_Velocity());
 	}
 	// 接收串口
 	// serialReceiveUserCommand();
@@ -127,27 +149,34 @@ void comm()
 	}
 	else if (cmdSource == 1)
 	{
-		uint8_t tmp = Serial1.read();
-		if (tmp == '\n')
+		while (Serial1.available())
 		{
-			if (isDebug)
+			uint8_t tmp = Serial1.read();
+			if (tmp == '\n')
 			{
-				for (int i = 0; i < 9; i++)
+				if (isDebug)
 				{
-					Serial.print(buf[i], HEX);
-					Serial.print("\n");
+					/*
+					 for (int i = 0; i < 9; i++)
+					 {
+						 Serial.print(buf[i], HEX);
+					 }
+					 Serial.print("\n");
+					 */
 				}
+				pBuf = &buf[0]; // 指针归位
+				motorCmd.mode = buf[0];
+				uint32_t m0byte = (uint32_t)buf[4] << 24 | (uint32_t)buf[3] << 16 | (uint32_t)buf[2] << 8 | (uint32_t)buf[1];
+				uint32_t m1byte = (uint32_t)buf[8] << 24 | (uint32_t)buf[7] << 16 | (uint32_t)buf[6] << 8 | (uint32_t)buf[5];
+				memcpy(&motorCmd.m0target, &m0byte, 4);
+				memcpy(&motorCmd.m1target, &m1byte, 4);
+				printPara();
 			}
-			pBuf = &buf[0]; // 指针归位
-			motorCmd.mode = buf[0];
-			motorCmd.m0target = (uint32_t)buf[1] << 24 | (uint32_t)buf[2] << 16 | (uint32_t)buf[3] << 8 | (uint32_t)buf[4];
-			motorCmd.m1target = (uint32_t)buf[5] << 24 | (uint32_t)buf[6] << 16 | (uint32_t)buf[7] << 8 | (uint32_t)buf[8];
-			printPara();
-		}
-		else
-		{
-			*pBuf = tmp; // 接收到的字节写入缓存
-			pBuf++;		 // 指针加一
+			else
+			{
+				*pBuf = tmp; // 接收到的字节写入缓存
+				pBuf++;		 // 指针加一
+			}
 		}
 	}
 }
@@ -173,13 +202,6 @@ void parseCommand(String cmd)
 	String modeStr = cmd.substring(0, firstComma);
 	String m0targetStr = cmd.substring(firstComma + 1, secondComma);
 	String m1targetStr = cmd.substring(secondComma + 1);
-
-	// Serial.printf("%s,%s,%s\n", modeStr, m0targetStr, m1targetStr);
-	//  CmdSource.print(modeStr);
-	//  CmdSource.print(" ");
-	//  CmdSource.print(m0targetStr);
-	//  CmdSource.print(" ");
-	//  CmdSource.println(m1targetStr);
 
 	motorCmd.mode = modeStr.toInt();
 	motorCmd.m0target = m0targetStr.toFloat();

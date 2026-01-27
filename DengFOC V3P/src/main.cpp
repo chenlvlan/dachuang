@@ -106,7 +106,7 @@ void loop()
 		DFOC_M0_setTorque(motorCmd.m0target / torqueConstant);
 		DFOC_M1_setTorque(motorCmd.m1target / torqueConstant);
 	}
-	else if (motorCmd.mode == 255)
+	else if (motorCmd.mode == 10)
 	{
 		// ESP.restart();
 		// esp_reset_hw();
@@ -163,7 +163,7 @@ void comm()
 		while (Serial1.available())
 		{
 			uint8_t tmp = Serial1.read();
-			if (tmp == '\n')
+			if (tmp == 0xff)
 			{
 				if (isDebug)
 				{

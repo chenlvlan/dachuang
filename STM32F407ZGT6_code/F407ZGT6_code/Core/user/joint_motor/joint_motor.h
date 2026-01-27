@@ -93,7 +93,9 @@ void JM_Restart(uint8_t id);
 void JM_ReturnToOrigin(uint8_t id);
 void solveMotorCanRx(motorDataRead_t *motorDataRead);
 
-
+void refreshAll(uint8_t id);
+//speed in Rad/s, torque in N.m, timeout in ms
+void returnToOrigin(float speed, float torque, uint32_t timeout);
 
 static inline float degToRad(float deg) {
 	return deg * M_PI / 180.0;

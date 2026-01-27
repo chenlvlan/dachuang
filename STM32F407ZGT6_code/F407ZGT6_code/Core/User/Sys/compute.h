@@ -42,4 +42,7 @@ IKStatus_t fivebar_inverse_kinematics(float x, float y,         // 足端目标�
 
 float clampf(float x, float min, float max);
 
+void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
+		float *yaw);
+
 #endif /* USER_SYS_COMPUTE_H_ */

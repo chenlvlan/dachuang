@@ -150,3 +150,28 @@ IKStatus_t fivebar_inverse_kinematics(float x, float y, const FiveBarGeom_t *g,
 #endif
 }
 
+void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
+		float *yaw) {
+	/* -------- Roll (X axis) -------- */
+	float sinr_cosp = 2.0f * (w * x + y * z);
+	float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
+	*roll = atan2f(sinr_cosp, cosr_cosp);
+
+	/* -------- Pitch (Y axis) -------- */
+	float sinp = 2.0f * (w * y - z * x);
+	if (sinp >= 1.0f)
+		*pitch = M_PI / 2.0f;
+	else if (sinp <= -1.0f)
+		*pitch = -M_PI / 2.0f;
+	else
+		*pitch = asinf(sinp);
+
+	/* -------- Yaw (Z axis) -------- */
+	float siny_cosp = 2.0f * (w * z + x * y);
+	float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
+	*yaw = atan2f(siny_cosp, cosy_cosp);
+
+	*roll *= 57.29578f;
+	*yaw *= 57.29578f;
+	*pitch *= 57.29578f;
+}

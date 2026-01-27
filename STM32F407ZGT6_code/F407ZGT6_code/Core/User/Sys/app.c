@@ -82,60 +82,7 @@ void appLoop() {
 		control_loop(pitch);
 	}
 	cli_poll();
-
 	//HAL_Delay(1000);
-}
-
-//警告：这个是阻塞函数，实时状态下禁止使用
-void refreshAll(uint8_t id) {
-	JM_GetMotorInfo(id, 0);
-	HAL_Delay(5);
-	JM_GetRealTimeStatusInfo(id);
-	HAL_Delay(5);
-	JM_GetSoftwareInfo(id);
-	HAL_Delay(5);
-}
-
-void returnToOrigin(float speed, float torque, uint32_t timeout) {
-
-//.......
-//在执行回原点前，先安全地保存现场，完成准备工作
-
-	JM_SetPosVelModeMaxTorque(idLF, torque);	//限制最大力矩
-	JM_SetPosVelModeMaxTorque(idLR, torque);
-	JM_SetPosVelModeMaxTorque(idRF, torque);
-	JM_SetPosVelModeMaxTorque(idRR, torque);
-
-	HAL_Delay(100);
-	speed = 0 - fabsf(speed);	//速度为负数才是往原点转
-	JM_VelMode(idLF, speed);	//进行归零动作
-	JM_VelMode(idLR, speed);
-	JM_VelMode(idRF, speed);
-	JM_VelMode(idRR, speed);
-
-	//float deltaPos[4][25];
-	//这里使用简化的回原点程序，就是在限定力矩的情况下，给充足的时间，并假定所有关节电机都转到
-	//了原点，时间一到直接设置当前为原点
-
-	HAL_Delay(timeout);
-	JM_PosRelaMode(idRF, 0.2);	//右侧两个电机转至右边的腿分开
-	JM_PosRelaMode(idRR, 0.2);
-	HAL_Delay(500);
-	JM_Restart(idLF);	//重启，读取新的位置
-	JM_Restart(idLR);
-	JM_Restart(idRF);
-	JM_Restart(idRR);
-	HAL_Delay(200);	//必须加延时，不然RR电机无法回零
-	JM_ReturnToOrigin(idLF);	//转到原点，以展示回原点是否正确
-	HAL_Delay(200);
-	JM_ReturnToOrigin(idLR);
-	HAL_Delay(200);
-	JM_ReturnToOrigin(idRF);
-	HAL_Delay(200);
-	JM_ReturnToOrigin(idRR);
-	HAL_Delay(200);
-//回原点完毕，安全地恢复现场
-//........
 }
 
 void motionCtrlCycle() {
@@ -162,7 +109,6 @@ void control_init(void) {
 }
 
 void control_loop(float pitch_raw) {
-
 	/* 1. 读取 IMU */
 	//pitch_raw = imu_get_pitch_rad();
 	/* 2. 低通滤波 */
@@ -185,30 +131,4 @@ void control_loop(float pitch_raw) {
 	motorCmd.m0target = u;
 	motorCmd.m1target = u;
 	WM_Send(motorCmd);
-}
-
-void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
-		float *yaw) {
-	/* -------- Roll (X axis) -------- */
-	float sinr_cosp = 2.0f * (w * x + y * z);
-	float cosr_cosp = 1.0f - 2.0f * (x * x + y * y);
-	*roll = atan2f(sinr_cosp, cosr_cosp);
-
-	/* -------- Pitch (Y axis) -------- */
-	float sinp = 2.0f * (w * y - z * x);
-	if (sinp >= 1.0f)
-		*pitch = M_PI / 2.0f;
-	else if (sinp <= -1.0f)
-		*pitch = -M_PI / 2.0f;
-	else
-		*pitch = asinf(sinp);
-
-	/* -------- Yaw (Z axis) -------- */
-	float siny_cosp = 2.0f * (w * z + x * y);
-	float cosy_cosp = 1.0f - 2.0f * (y * y + z * z);
-	*yaw = atan2f(siny_cosp, cosy_cosp);
-
-	*roll *= 57.29578f;
-	*yaw *= 57.29578f;
-	*pitch *= 57.29578f;
 }

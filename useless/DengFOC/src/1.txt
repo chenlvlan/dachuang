@@ -39,13 +39,13 @@ void setup()
 	DFOC_M0_alignSensor(11, -1);
 	DFOC_M1_alignSensor(11, -1);
 
-	DFOC_M0_SET_VEL_PID(0.002, 0, 0, 50000, 1);
-	DFOC_M0_SET_CURRENT_PID(0.1, 50, 0, 100000);
-	DFOC_M0_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
+	//DFOC_M0_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	//DFOC_M0_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	//DFOC_M0_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
 
-	DFOC_M1_SET_VEL_PID(0.002, 0, 0, 50000, 1);
-	DFOC_M1_SET_CURRENT_PID(0.1, 50, 0, 100000);
-	DFOC_M1_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
+	//DFOC_M1_SET_VEL_PID(0.002, 0, 0, 50000, 1);
+	//DFOC_M1_SET_CURRENT_PID(0.1, 50, 0, 100000);
+	//DFOC_M1_SET_ANGLE_PID(0.002, 0, 0, 100000, 100);
 	// vTaskSuspendAll();
 	DFOC_disable(); // 默认禁用
 }
@@ -72,10 +72,12 @@ void loop()
 		{
 		case 1:
 			// 速度模式
+			//DFOC_M0_SET_VEL_PID(0.002, 0, 0, 50000, 1);
 			DFOC_M0_setVelocity(motor0.value);
 			break;
 		case 2:
 			// 力矩模式
+			//DFOC_M0_SET_CURRENT_PID(0.1, 50, 0, 100000);
 			DFOC_M0_setTorque(motor0.value);
 		default:
 			break;
@@ -84,10 +86,12 @@ void loop()
 		{
 		case 1:
 			// 速度模式
+			//DFOC_M1_SET_VEL_PID(0.002, 0, 0, 50000, 1);
 			DFOC_M1_setVelocity(motor1.value);
 			break;
 		case 2:
 			// 力矩模式
+			//DFOC_M1_SET_CURRENT_PID(0.1, 50, 0, 100000);
 			DFOC_M1_setTorque(motor1.value);
 		default:
 			break;

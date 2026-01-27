@@ -3,8 +3,6 @@
 #include "lowpass_filter.h"
 #include "pid.h"
 #include "InlineCurrent.h" //引入在线电流检测
-#include "DengFOC.h"
-// #include "driver/i2c.h"
 
 #define _constrain(amt, low, high) ((amt) < (low) ? (low) : ((amt) > (high) ? (high) : (amt)))
 float voltage_power_supply;
@@ -27,17 +25,21 @@ int M1_pwmC = 14;
 int enable = 12; // 电机使能
 
 // 低通滤波初始化
-LowPassFilter M0_Vel_Flt = LowPassFilter(0.01);	  // Tf = 10ms   //M0速度环
-LowPassFilter M1_Vel_Flt = LowPassFilter(0.01);	  // Tf = 10ms   //M0速度环
-LowPassFilter M0_Curr_Flt = LowPassFilter(0.005); // Tf = 5ms   //M0电流环
-LowPassFilter M1_Curr_Flt = LowPassFilter(0.005); // Tf = 5ms   //M0电流环
+LowPassFilter M0_Vel_Flt = LowPassFilter(0.01);	 // Tf = 10ms   //M0速度环
+LowPassFilter M1_Vel_Flt = LowPassFilter(0.01);	 // Tf = 10ms   //M0速度环
+LowPassFilter M0_Curr_Flt = LowPassFilter(0.05); // Tf = 5ms   //M0电流环
+LowPassFilter M1_Curr_Flt = LowPassFilter(0.05); // Tf = 5ms   //M0电流环
 // PID
-PIDController vel_loop_M0 = PIDController{0.2, 20, 0, 100000, voltage_power_supply / 2};
-PIDController angle_loop_M0 = PIDController{0.2, 0, 0, 100000, 100};
-PIDController current_loop_M0 = PIDController{0.1, 100, 0, 100000, 3};
-PIDController vel_loop_M1 = PIDController{0.2, 20, 0, 100000, voltage_power_supply / 2};
-PIDController angle_loop_M1 = PIDController{0.2, 0, 0, 100000, 100};
-PIDController current_loop_M1 = PIDController{0.1, 100, 0, 100000, 3};
+// PIDController vel_loop_M0 = PIDController{2, 0, 0, 100000, voltage_power_supply / 2};
+PIDController vel_loop_M0 = PIDController{2, 0, 0, 100000, 2};
+PIDController angle_loop_M0 = PIDController{2, 0, 0, 100000, 100};
+// PIDController current_loop_M0 = PIDController{1.2, 0, 0, 100000, 12.6};
+PIDController current_loop_M0 = PIDController{1.2, 0, 0, 100000, 5};
+// PIDController vel_loop_M1 = PIDController{2, 0, 0, 100000, voltage_power_supply / 2};
+PIDController vel_loop_M1 = PIDController{2, 0, 0, 100000, 2};
+PIDController angle_loop_M1 = PIDController{2, 0, 0, 100000, 100};
+// PIDController current_loop_M1 = PIDController{1.2, 0, 0, 100000, 12.6};
+PIDController current_loop_M1 = PIDController{1.2, 0, 0, 100000, 5};
 // AS5600
 Sensor_AS5600 S0 = Sensor_AS5600(0);
 Sensor_AS5600 S1 = Sensor_AS5600(1);
@@ -72,14 +74,15 @@ void DFOC_M0_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit) /
 	angle_loop_M0.output_ramp = ramp;
 	angle_loop_M0.limit = limit;
 }
-void DFOC_M0_SET_CURRENT_PID(float P, float I, float D, float ramp) // M0电流环PID设置
+void DFOC_M0_SET_CURRENT_PID(float P, float I, float D, float ramp, float limit) // M0电流环PID设置
 {
 	current_loop_M0.P = P;
 	current_loop_M0.I = I;
 	current_loop_M0.D = D;
 	current_loop_M0.output_ramp = ramp;
+	current_loop_M0.limit = limit;
 }
-void DFOC_M1_SET_VEL_PID(float P, float I, float D, float ramp, float limit) // M0角度环PID设置
+void DFOC_M1_SET_VEL_PID(float P, float I, float D, float ramp, float limit) // M1角度环PID设置
 {
 	vel_loop_M1.P = P;
 	vel_loop_M1.I = I;
@@ -88,7 +91,7 @@ void DFOC_M1_SET_VEL_PID(float P, float I, float D, float ramp, float limit) // 
 	vel_loop_M1.limit = limit;
 }
 // 角度PID
-void DFOC_M1_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit) // M0角度环PID设置
+void DFOC_M1_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit) // M1角度环PID设置
 {
 	angle_loop_M1.P = P;
 	angle_loop_M1.I = I;
@@ -96,12 +99,13 @@ void DFOC_M1_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit) /
 	angle_loop_M1.output_ramp = ramp;
 	angle_loop_M1.limit = limit;
 }
-void DFOC_M1_SET_CURRENT_PID(float P, float I, float D, float ramp) // M0电流环PID设置
+void DFOC_M1_SET_CURRENT_PID(float P, float I, float D, float ramp, float limit) // M1电流环PID设置
 {
 	current_loop_M1.P = P;
 	current_loop_M1.I = I;
 	current_loop_M1.D = D;
 	current_loop_M1.output_ramp = ramp;
+	current_loop_M1.limit = limit;
 }
 
 // M0速度PID接口
@@ -364,14 +368,8 @@ void DFOC_Vbus(float power_supply)
 	pinMode(enable, OUTPUT); // 设置使能引脚
 
 	// AS5600
-
-	// i2c_filter_enable(23, 31);  // 最大滤波周期
-	// i2c_filter_enable(5, 31);
 	S0_I2C.begin(19, 18, 400000UL);
 	S1_I2C.begin(23, 5, 400000UL);
-
-	// i2c_filter_enable(0, 31); // 最大滤波周期
-	// i2c_filter_enable(1, 31);
 
 	S0.Sensor_init(&S0_I2C); // 初始化编码器0
 	S1.Sensor_init(&S1_I2C);
@@ -400,10 +398,9 @@ void DFOC_M0_alignSensor(int _PP, int _DIR)
 	M0_PP = _PP;
 	M0_DIR = _DIR;
 	M0_setTorque(3, _3PI_2); // 起劲
-	delay(500);
+	delay(1000);
 	S0.Sensor_update(); // 更新角度，方便下面电角度读取
 	S0_zero_electric_angle = S0_electricalAngle();
-	delay(500);
 	M0_setTorque(0, _3PI_2); // 松劲（解除校准）
 	Serial.print("M0 0电角度：");
 	Serial.println(S0_zero_electric_angle);
@@ -413,10 +410,9 @@ void DFOC_M1_alignSensor(int _PP, int _DIR)
 	M1_PP = _PP;
 	M1_DIR = _DIR;
 	M1_setTorque(3, _3PI_2); // 起劲
-	delay(500);
+	delay(1000);
 	S1.Sensor_update(); // 更新角度，方便下面电角度读取
 	S1_zero_electric_angle = S1_electricalAngle();
-	delay(500);
 	M1_setTorque(0, _3PI_2); // 松劲（解除校准）
 	Serial.print("M1 0电角度：");
 	Serial.println(S1_zero_electric_angle);
@@ -478,50 +474,49 @@ float DFOC_M1_Velocity()
 }
 
 //==============串口接收==============
-/*
 float M0_target;
 float M1_target;
 int commaPosition;
 String serialReceiveUserCommand()
 {
 
-  // a string to hold incoming data
-  static String received_chars;
+	// a string to hold incoming data
+	static String received_chars;
 
-  String command = "";
+	String command = "";
 
-  while (Serial.available())
-  {
-	// get the new byte:
-	char inChar = (char)Serial.read();
-	// add it to the string buffer:
-	received_chars += inChar;
-
-	// end of user input
-	if (inChar == '\n')
+	while (Serial.available())
 	{
+		// get the new byte:
+		char inChar = (char)Serial.read();
+		// add it to the string buffer:
+		received_chars += inChar;
 
-	  // execute the user command
-	  command = received_chars;
+		// end of user input
+		if (inChar == '\n')
+		{
 
-	  commaPosition = command.indexOf('\n'); // 检测字符串中的逗号
-	  if (commaPosition != -1)               // 如果有逗号存在就向下执行
-	  {
-		M0_target = command.substring(0, commaPosition).toDouble(); // 电机角度
-		Serial.println(M0_target);
-	  }
-	  // reset the command buffer
-	  received_chars = "";
+			// execute the user command
+			command = received_chars;
+
+			commaPosition = command.indexOf('\n'); // 检测字符串中的逗号
+			if (commaPosition != -1)			   // 如果有逗号存在就向下执行
+			{
+				M0_target = command.substring(0, commaPosition).toDouble(); // 电机角度
+				Serial.println(M0_target);
+			}
+			// reset the command buffer
+			received_chars = "";
+		}
 	}
-  }
-  return command;
+	return command;
 }
 
 float serial_motor_target()
 {
-  return M0_target;
+	return M0_target;
 }
-*/
+
 //================简易接口函数================
 void DFOC_M0_setTorque(float Target) // 电流力矩环
 {
@@ -574,9 +569,8 @@ void runFOC()
 {
 	//====传感器更新====
 	S0.Sensor_update();
-	// S1.Sensor_update();
-	CS_M0.getPhaseCurrents();
 	S1.Sensor_update();
+	CS_M0.getPhaseCurrents();
 	CS_M1.getPhaseCurrents();
 
 	//====传感器更新====

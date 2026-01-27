@@ -4,9 +4,8 @@
 // 仅在DengFOC官方硬件上测试过，欢迎硬件购买/支持作者，淘宝搜索店铺：灯哥开源
 // 你的支持将是接下来做视频和持续开源的经费，灯哥在这里先谢谢大家了
 // 函数声明
-
-#include <string>
 #include <Arduino.h>
+
 void M0_setPwm(float Ua, float Ub, float Uc);
 void M1_setPwm(float Ua, float Ub, float Uc);
 void DFOC_enable();
@@ -21,8 +20,8 @@ float S0_electricalAngle();
 float S1_electricalAngle();
 float cal_Iq_Id(float current_a, float current_b, float angle_el);
 float serial_motor_target();
-// String serialReceiveUserCommand();
-//  传感器读取
+String serialReceiveUserCommand();
+// 传感器读取
 float DFOC_M0_Velocity();
 float DFOC_M1_Velocity();
 float DFOC_M0_Angle();
@@ -32,10 +31,10 @@ float DFOC_M1_Current();
 // PID
 void DFOC_M0_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit);
 void DFOC_M0_SET_VEL_PID(float P, float I, float D, float ramp, float limit);
-void DFOC_M0_SET_CURRENT_PID(float P, float I, float D, float ramp);
+void DFOC_M0_SET_CURRENT_PID(float P, float I, float D, float ramp, float limit);
 void DFOC_M1_SET_ANGLE_PID(float P, float I, float D, float ramp, float limit);
 void DFOC_M1_SET_VEL_PID(float P, float I, float D, float ramp, float limit);
-void DFOC_M1_SET_CURRENT_PID(float P, float I, float D, float ramp);
+void DFOC_M1_SET_CURRENT_PID(float P, float I, float D, float ramp, float limit);
 float DFOC_M0_VEL_PID(float error);
 float DFOC_M0_ANGLE_PID(float error);
 float DFOC_M1_VEL_PID(float error);

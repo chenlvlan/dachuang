@@ -8,15 +8,16 @@
 #ifndef USER_MPU6500_MPU6500_H_
 #define USER_MPU6500_MPU6500_H_
 
-#include "../mpu6500/inv_mpu.h"
-#include "../mpu6500/inv_mpu_dmp_motion_driver.h"
+#include <stdio.h>
+#include <math.h>
+#include "inv_mpu.h"
+#include "inv_mpu_dmp_motion_driver.h"
 
 #define MPU6500_INT_PIN GPIO_PIN_3
 
-int MPU6500_SPIInit();
-void dmp_print_once();
-void mpu_data_ready(void);
-
-
+int mpu6500_SPIInit();
+void mpu6500_DMPGet(float* quat_nom);
+void mpu_data_ready();
+int mpu6500_isReady();
 
 #endif /* USER_MPU6500_MPU6500_H_ */

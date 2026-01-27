@@ -15,10 +15,11 @@
 #include "cli.h"
 #include "compute.h"
 #include "../joint_motor/joint_motor.h"
+#include "../wheel_motor/wheel_motor.h"
 //#include "midware.h.txt"
 
 extern bool doMotionCtrlCycle;
-extern UART_HandleTypeDef huart4;
+//extern UART_HandleTypeDef huart4;
 extern motorDataRead_t JMDataRead[4];
 extern CanRxMessage_t CanRxMessage;
 extern CAN_HandleTypeDef hcan1;
@@ -43,11 +44,4 @@ void control_loop(float pitch_raw);
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 		float *yaw);
 
-typedef struct {
-	uint8_t mode;
-	float m0target;
-	float m1target;
-} motorCommand;
-
-void WM_Send(motorCommand mot_cmd);
 #endif /* USER_SYS_APP_H_ */

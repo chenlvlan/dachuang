@@ -106,7 +106,7 @@ void loop()
 		DFOC_M0_setTorque(motorCmd.m0target / torqueConstant);
 		DFOC_M1_setTorque(motorCmd.m1target / torqueConstant);
 	}
-	else if (motorCmd.mode == 10)
+	else if (motorCmd.mode == 255)
 	{
 		// ESP.restart();
 		// esp_reset_hw();

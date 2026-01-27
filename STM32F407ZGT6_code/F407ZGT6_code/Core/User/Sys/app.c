@@ -6,27 +6,17 @@
  */
 
 #include "app.h"
-
 #include "arm_math.h"
 
 #define MAX_WHEEL_TORQUE 0.11f
 
 bool doMotionCtrlCycle = 0;
 motorDataRead_t JMDataRead[4] = { 0 };
-
 motorCommand motorCmd;
-//----------------------------------------
-int mpu_dmp_int = 0;
-int int_count = 0;
-short gyro[3], accel[3];
-long quat[4];
-float quat_nom[4];
-unsigned long timestamp;
-short sensors;
-unsigned char more;
-struct int_param_s mpu_int_param;
+
+float quat_nom[4]={0};
 float roll, yaw, pitch;
-//------------------------------------------
+
 float pitch_filt;
 float pitch_ref = 0.0f;
 
@@ -50,12 +40,9 @@ void HVHP(bool isEN) {
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
-	motorCmd.mode = 10;
-	motorCmd.m0target = 0;
-	motorCmd.m1target = 0;
-	WM_Send(motorCmd);
+	WM_Restart();
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
-	MPU6500_SPIInit();
+	mpu6500_SPIInit();
 	cli_init();
 
 	printf("CLI ready, type 'help'\r\n");
@@ -87,9 +74,8 @@ void appLoop() {
 		doMotionCtrlCycle = 0;
 		motionCtrlCycle();
 	}
-	if (mpu_dmp_int) {
-		mpu_dmp_int = 0;
-		dmp_print_once();
+	if (mpu6500_isReady()) {
+		mpu6500_DMPGet(&quat_nom[0]);
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
 				&pitch, &yaw);
 		printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
@@ -225,13 +211,4 @@ void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 	*roll *= 57.29578f;
 	*yaw *= 57.29578f;
 	*pitch *= 57.29578f;
-}
-
-void WM_Send(motorCommand mot_cmd) {
-	uint8_t buf[10] = { 0 };
-	buf[0] = mot_cmd.mode;
-	memcpy(&buf[1], &mot_cmd.m0target, 4);
-	memcpy(&buf[5], &mot_cmd.m1target, 4);
-	buf[9] = '\n';
-	HAL_UART_Transmit(&huart4, &buf[0], sizeof(buf), HAL_MAX_DELAY);
 }

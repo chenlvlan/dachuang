@@ -7,7 +7,15 @@
 
 #include "mpu6500.h"
 
-int MPU6500_SPIInit() {
+int mpu_dmp_int = 0, int_count = 0;
+short gyro[3], accel[3];
+long quat[4];
+unsigned long timestamp;
+short sensors;
+unsigned char more;
+struct int_param_s mpu_int_param;
+
+int mpu6500_SPIInit() {
 	int result;
 
 	mpu_int_param.cb = mpu_data_ready;
@@ -53,11 +61,11 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	}
 }
 
-void mpu_data_ready(void) {
+void mpu_data_ready() {
 	mpu_dmp_int = 1;
 }
 
-void dmp_print_once() {
+void mpu6500_DMPGet(float *quat_nom) {
 	do {
 		dmp_read_fifo(gyro, accel, quat, &timestamp, &sensors, &more);
 	} while (more);
@@ -95,5 +103,14 @@ void dmp_print_once() {
 		quat_nom[3] = q_out[3];
 		//printf("%.5f, %.5f, %.5f, %.5f, ", quat_nom[0], quat_nom[1],
 		//		quat_nom[2], quat_nom[3]);
+	}
+}
+
+int mpu6500_isReady() {
+	if (mpu_dmp_int == 1) {
+		mpu_dmp_int = 0;
+		return 1;
+	} else {
+		return 0;
 	}
 }

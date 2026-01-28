@@ -18,7 +18,7 @@ float quat_nom[4]={0};
 float roll, yaw, pitch;
 
 float pitch_filt;
-float pitch_ref = 0.0f;
+float pitch_ref = 1.0f;
 
 float u;             // 轮子控制量
 

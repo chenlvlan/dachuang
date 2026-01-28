@@ -31,6 +31,7 @@ static void cli_cmd_help(int argc, char *argv[]);
 static void cli_cmd_set(int argc, char *argv[]);
 static void cli_cmd_get(int argc, char *argv[]);
 static void cli_cmd_ik(int argc, char *argv[]);
+static void cli_cmd_pid(int argc, char *argv[]);
 
 /* ================= 对外接口 ================= */
 
@@ -115,6 +116,8 @@ static void cli_process(char *line) {
 		cli_cmd_get(argc, argv);
 	} else if (strcmp(argv[0], "ik") == 0) {
 		cli_cmd_ik(argc, argv);
+	} else if (strcmp(argv[0], "pid") == 0) {
+		cli_cmd_pid(argc, argv);
 	} else {
 		printf("Unknown command\r\n");
 	}
@@ -144,7 +147,7 @@ static void cli_cmd_set(int argc, char *argv[]) {
 		return;
 	}
 
-	float v = atof(argv[2]);
+	float v = atoff(argv[2]);
 
 	if (strcmp(argv[1], "x") == 0) {
 		target_x = v;
@@ -180,32 +183,42 @@ static void cli_cmd_ik(int argc, char *argv[]) {
 		return;
 	}
 
-	float x = atof(argv[1]);
-	float y = atof(argv[2]);
+	legData.x = atof(argv[1]);
+	legData.y = atof(argv[2]);
+//printf("begin calc\r\n");
+	fivebar_inverse_kinematics(&legData);
+// 这里后面直接接你的 fivebar_inverse_kinematics
+	printf("x=%.3f, y=%.3f, theta_f=%.2f Deg, theta_r=%.2f Deg, state=%d\r\n",
+			legData.x, legData.y, legData.theta_f * 57.29578f,
+			legData.theta_r * 57.29578f, legData.status);
+	JM_PosAbsMode(idLF, legData.theta_f);
+	JM_PosAbsMode(idRF, legData.theta_f);
+	JM_PosAbsMode(idLR, legData.theta_r);
+	JM_PosAbsMode(idRR, legData.theta_r);
+}
 
-	/*
-	FiveBarGeom_t g;
-	g.L1 = 90.0f;
-	g.L2 = 90.0f;
-	g.L3 = 130.0f;
-	g.L4 = 130.0f;
-	g.d = 65.5f;
-	FiveBarLimit_t lim;
-	lim.theta_f_min = 0.0f;
-	lim.theta_f_max = 1.448623f;
-	lim.theta_r_min = 0.0f;
-	lim.theta_r_max = 1.448623f;
-	float theta_f, theta_r;
+static void cli_cmd_pid(int argc, char *argv[]) {
+	if (argc < 2) {
+		printf("Usage: pid <controller name> <Kp> <Ki> <Kd>\r\n");
+		return;
+	}
 
-	IKStatus_t iks;
-
-	printf("begin calc\r\n");
-	iks = fivebar_inverse_kinematics();
-	// 这里后面直接接你的 fivebar_inverse_kinematics
-	printf("x=%.3f, y=%.3f, theta_f=%.2f Deg, theta_r=%.2f Deg, state=%d\r\n", x, y,
-			theta_f*57.29578f, theta_r*57.29578f, iks);
-	JM_PosAbsMode(idLF, theta_f);
-	JM_PosAbsMode(idLR, theta_r);
-	JM_PosAbsMode(idRF, theta_f);
-	JM_PosAbsMode(idRR, theta_r);*/
+	if (strcmp(argv[1], "pitch") == 0) {
+		if (argc == 2) {
+			//pid pitch
+			printf("Current PID of pitch: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
+					pid_pitch.Kp, pid_pitch.Ki, pid_pitch.Kd);
+		} else if (argc == 5) {
+			pid_pitch.Kp = atoff(argv[2]);
+			pid_pitch.Ki = atoff(argv[3]);
+			pid_pitch.Kd = atoff(argv[4]);
+			arm_pid_init_f32(&pid_pitch, 0);
+			printf("Set PID of pitch: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
+								pid_pitch.Kp, pid_pitch.Ki, pid_pitch.Kd);
+		} else {
+			printf("Need full parameter :)\r\n");
+		}
+	} else {
+		printf("Unknown controller\r\n");
+	}
 }

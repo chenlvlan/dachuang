@@ -46,7 +46,7 @@ typedef struct {
 	float theta_f;   //前腿电机角
 	float theta_r;   //后腿电机角
 	uint8_t status;//状态
-} legData;
+} legData_t;
 
 typedef enum {
 	IK_OK = 0, IK_OUT_OF_REACH,     // 足端不可达
@@ -54,7 +54,7 @@ typedef enum {
 	IK_JOINT_LIMIT      // 关节超限
 } IKStatus_t;
 
-void fivebar_inverse_kinematics(legData *leg_data);
+void fivebar_inverse_kinematics(legData_t *leg_data);
 
 float clampf(float x, float min, float max);
 

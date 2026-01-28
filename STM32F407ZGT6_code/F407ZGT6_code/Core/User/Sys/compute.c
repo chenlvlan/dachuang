@@ -20,9 +20,13 @@ float clampf(float x, float min, float max) {
 //前大腿，后大腿，前小腿，后小腿，电机间距
 //const static float legData[5] = { 90.0, 90.0, 130.0, 130.0, 65.5 };
 
-void fivebar_inverse_kinematics(legData *leg_data) {
+void fivebar_inverse_kinematics(legData_t *leg_data) {
 	/* ================= 前腿 ================= */
-	float rf2 = leg_data->x * leg_data->x + leg_data->y * leg_data->y;
+	float x_offset = (-32.75f);
+	float y_offset = (0.0f);
+	float x = leg_data->x + x_offset;
+	float y = leg_data->y + y_offset;
+	float rf2 = x * x + y * y;
 	if (rf2 < EPS)
 		leg_data->status = IK_NUMERIC_ERROR;
 
@@ -39,15 +43,15 @@ void fivebar_inverse_kinematics(legData *leg_data) {
 	float alpha_f = acosf(cos_af);
 
 	/* 数学角：+Y 为 0，逆时针为正 */
-	float phi_f = atan2f(leg_data->x, leg_data->y);
+	float phi_f = atan2f(x, y);
 
 	/* 选择膝盖朝前（凸结构） */
 	float th_f = phi_f - alpha_f;
 
 	/* ================= 后腿 ================= */
 	/* 后电机在 (-d, 0) */
-	float xr = leg_data->x + leg_data->d;
-	float yr = leg_data->y;
+	float xr = x + leg_data->d;
+	float yr = y;
 
 	float rr2 = xr * xr + yr * yr;
 	if (rr2 < EPS)
@@ -82,7 +86,7 @@ void fivebar_inverse_kinematics(legData *leg_data) {
 	leg_data->theta_f = th_f;
 	leg_data->theta_r = th_r;
 
-	return IK_OK;
+	leg_data->status = IK_OK;
 }
 
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,

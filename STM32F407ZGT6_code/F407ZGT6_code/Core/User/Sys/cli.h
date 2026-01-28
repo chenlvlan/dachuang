@@ -11,7 +11,12 @@
 #include <stdint.h>
 
 #include "compute.h"
+#include "../mpu6500/mpu6500.h"
 #include "../joint_motor/joint_motor.h"
+#include "../wheel_motor/wheel_motor.h"
+
+extern legData_t legData;
+extern arm_pid_instance_f32 pid_pitch;
 //#include "midware.h"
 
 /* ================= 配置 ================= */

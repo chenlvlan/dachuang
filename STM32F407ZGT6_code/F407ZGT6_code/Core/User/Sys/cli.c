@@ -183,6 +183,7 @@ static void cli_cmd_ik(int argc, char *argv[]) {
 	float x = atof(argv[1]);
 	float y = atof(argv[2]);
 
+	/*
 	FiveBarGeom_t g;
 	g.L1 = 90.0f;
 	g.L2 = 90.0f;
@@ -195,14 +196,16 @@ static void cli_cmd_ik(int argc, char *argv[]) {
 	lim.theta_r_min = 0.0f;
 	lim.theta_r_max = 1.448623f;
 	float theta_f, theta_r;
+
 	IKStatus_t iks;
+
 	printf("begin calc\r\n");
-	iks = fivebar_inverse_kinematics(x, y, &g, &lim, &theta_f, &theta_r);
-	/* 这里后面直接接你的 fivebar_inverse_kinematics */
+	iks = fivebar_inverse_kinematics();
+	// 这里后面直接接你的 fivebar_inverse_kinematics
 	printf("x=%.3f, y=%.3f, theta_f=%.2f Deg, theta_r=%.2f Deg, state=%d\r\n", x, y,
 			theta_f*57.29578f, theta_r*57.29578f, iks);
 	JM_PosAbsMode(idLF, theta_f);
 	JM_PosAbsMode(idLR, theta_r);
 	JM_PosAbsMode(idRF, theta_f);
-	JM_PosAbsMode(idRR, theta_r);
+	JM_PosAbsMode(idRR, theta_r);*/
 }

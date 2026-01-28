@@ -7,6 +7,14 @@
 
 #include "joint_motor.h"
 
+CanRxMessage_t CanRxMessage;
+motorDataRead_t JMDataRead[4] = { 0 };
+
+void JM_CommInit() {
+	CommCan_Init(&hcan1); //关节电机can1通信初始化
+	CommCan_Init(&hcan2); //关节电机can2通信初始化
+}
+
 void JM_Disable(uint8_t id) {
 	CommCan_MotorDisableCtrl(idToHandle(id), id);
 }
@@ -615,7 +623,7 @@ void solveMotorCanRx(motorDataRead_t *motorDataRead) {
 }
 
 //警告：这个是阻塞函数，实时状态下禁止使用
-void refreshAll(uint8_t id) {
+void JM_RefreshAll(uint8_t id) {
 	JM_GetMotorInfo(id, 0);
 	HAL_Delay(5);
 	JM_GetRealTimeStatusInfo(id);
@@ -624,7 +632,7 @@ void refreshAll(uint8_t id) {
 	HAL_Delay(5);
 }
 
-void returnToOrigin(float speed, float torque, uint32_t timeout) {
+void JM_FindOrigin(float speed, float torque, uint32_t timeout) {
 
 //.......
 //在执行回原点前，先安全地保存现场，完成准备工作

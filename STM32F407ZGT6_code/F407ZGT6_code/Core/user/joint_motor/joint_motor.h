@@ -21,6 +21,11 @@
 //正常运行模式，不打印调试信息为0，打印调试信息为1
 
 typedef struct {
+	CAN_RxHeaderTypeDef RxHead;     //can通信协议头
+	uint8_t canRxBuf[8];            //can通信接收到的数据包
+} CanRxMessage_t;
+
+typedef struct {
 	//软件信息
 	uint16_t bootVer; //Boot软件版本
 	uint16_t appVer; //应用软件版本
@@ -59,8 +64,8 @@ typedef struct {
 
 } motorDataRead_t;
 
-extern motorDataRead_t JMDataRead[4];
-extern CanRxMessage_t CanRxMessage;
+//extern motorDataRead_t JMDataRead[4];
+//extern CanRxMessage_t CanRxMessage;
 
 enum idJM {
 	idLF = 11, idLR = 12, idRF = 14, idRR = 13,
@@ -79,6 +84,7 @@ enum status {
 	motorDisable = 0,
 };
 
+void JM_CommInit();
 void JM_Disable(uint8_t id);
 void JM_SetPosVelModeMaxTorque(uint8_t id, float torque);
 void JM_GetSoftwareInfo(uint8_t id);
@@ -93,9 +99,9 @@ void JM_Restart(uint8_t id);
 void JM_ReturnToOrigin(uint8_t id);
 void solveMotorCanRx(motorDataRead_t *motorDataRead);
 
-void refreshAll(uint8_t id);
+void JM_RefreshAll(uint8_t id);
 //speed in Rad/s, torque in N.m, timeout in ms
-void returnToOrigin(float speed, float torque, uint32_t timeout);
+void JM_FindOrigin(float speed, float torque, uint32_t timeout);
 
 static inline float degToRad(float deg) {
 	return deg * M_PI / 180.0;

@@ -16,6 +16,30 @@ void WM_Send(motorCommand mot_cmd) {
 	HAL_UART_Transmit(&huart4, &buf[0], sizeof(buf), HAL_MAX_DELAY);
 }
 
+void WM_Disable() {
+	motorCommand a;
+	a.mode = 0;
+	a.m0target = 0;
+	a.m1target = 0;
+	WM_Send(a);
+}
+
+WM_SendVelocity(float m0, float m1) {
+	motorCommand a;
+	a.mode = 1;
+	a.m0target = m0;
+	a.m1target = m1;
+	WM_Send(a);
+}
+
+void WM_SendTorque(float m0, float m1) {
+	motorCommand a;
+	a.mode = 2;
+	a.m0target = m0;
+	a.m1target = m1;
+	WM_Send(a);
+}
+
 void WM_Restart() {
 	motorCommand a;
 	a.mode = 10;

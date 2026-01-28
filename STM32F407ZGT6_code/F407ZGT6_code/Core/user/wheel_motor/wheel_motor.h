@@ -20,6 +20,9 @@ typedef struct {
 } motorCommand;
 
 void WM_Send(motorCommand mot_cmd);
+void WM_Disable();
+void WM_SendVelocity(float m0,float m1);
+void WM_SendTorque(float m0,float m1);
 void WM_Restart();
 
 

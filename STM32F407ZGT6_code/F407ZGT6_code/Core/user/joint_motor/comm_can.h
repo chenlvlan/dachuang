@@ -5,12 +5,9 @@
 
 //#include "../sys/misc.h.txt"
 
-typedef struct {
-	CAN_RxHeaderTypeDef RxHead;     //can通信协议头
-	uint8_t canRxBuf[8];            //can通信接收到的数据包
-} CanRxMessage_t;
 
-extern CanRxMessage_t CanRxMessage;
+
+//extern CanRxMessage_t CanRxMessage;
 
 /* 命令枚举 */
 enum {

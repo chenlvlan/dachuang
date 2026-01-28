@@ -11,10 +11,8 @@
 #define MAX_WHEEL_TORQUE 0.11f
 
 bool doMotionCtrlCycle = 0;
-motorDataRead_t JMDataRead[4] = { 0 };
-motorCommand motorCmd;
 
-float quat_nom[4]={0};
+float quat_nom[4] = { 0 };
 float roll, yaw, pitch;
 
 float pitch_filt;
@@ -40,27 +38,26 @@ void HVHP(bool isEN) {
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
-	WM_Restart();
+	WM_Restart();//复位驱动器
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	mpu6500_SPIInit();
 	cli_init();
 
 	printf("CLI ready, type 'help'\r\n");
 	//HAL_Delay(150); //等待供电稳定
-	CommCan_Init(&hcan1); //关节电机can1通信初始化
-	CommCan_Init(&hcan2); //关节电机can2通信初始化
+	JM_CommInit();
 	HAL_Delay(100);
 
 	//上电后的基本信息读取
-	refreshAll(idLF);
-	refreshAll(idLR);
-	refreshAll(idRF);
-	refreshAll(idRR);
+	JM_RefreshAll(idLF);
+	JM_RefreshAll(idLR);
+	JM_RefreshAll(idRF);
+	JM_RefreshAll(idRR);
 
 	HAL_TIM_Base_Start_IT(&htim3); //运动控制环开始定时
 
 	//警告：在限位块未安装的时候，严禁执行回原点程序，否则会导致撞机
-	returnToOrigin(0.3, 0.2, 3000); //回原点
+	JM_FindOrigin(0.3, 0.2, 3000); //回原点
 
 	//开启6500的中断捕获
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
@@ -127,8 +124,5 @@ void control_loop(float pitch_raw) {
 	/* 5. 给轮子 */
 	//wheel_set_torque(u, u);
 	printf("%.5f\r\n", u);
-	motorCmd.mode = 2;
-	motorCmd.m0target = u;
-	motorCmd.m1target = u;
-	WM_Send(motorCmd);
+	WM_SendTorque(u, u);
 }

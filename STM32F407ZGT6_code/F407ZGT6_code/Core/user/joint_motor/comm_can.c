@@ -21,7 +21,6 @@ float pos_max = POS_MAX_Default;
 float vel_max = VEL_MAX_DEFAULT;
 float t_max = T_MAX_DEFAULT;
 
-CanRxMessage_t CanRxMessage;
 uint8_t canTxBuf[8] = { 0 }; /**!< can数据发送缓存 */
 
 static inline float LIMIT_MIN_MAX(float x, float min, float max) {

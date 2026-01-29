@@ -94,8 +94,8 @@ void appLoop() {
 		control_loop(pitch);
 		//legData.x = -x_ref;
 		//fivebar_inverse_kinematics(&legData);
-		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
-		//		wheel_torque_cmd);
+		printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
+				wheel_torque_cmd);
 		/*
 		 JM_PosAbsMode(idLF, legData.theta_f);
 		 JM_PosAbsMode(idRF, legData.theta_f);
@@ -103,6 +103,8 @@ void appLoop() {
 		 JM_PosAbsMode(idRR, legData.theta_r);
 		 */
 		WM_SendTorque(wheel_torque_cmd, wheel_torque_cmd);
+		//WM_SendTorque(0.00114, 0.00114);
+		//WM_Disable();
 	}
 	cli_poll();
 }

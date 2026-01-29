@@ -39,7 +39,7 @@ void setup()
 {
 	pBuf = &buf[0];
 	Serial.begin(115200);					   // 调试串口
-	Serial1.begin(115200, SERIAL_8E1, 16, 17); // 通信串口
+	Serial1.begin(115200, SERIAL_8N1, 16, 17); // 通信串口
 
 	DFOC_enable(); // 放在校准前
 	DFOC_Vbus(24); // 设定驱动器供电电压
@@ -133,7 +133,7 @@ void loop()
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
 		// Serial.printf("M0tar=%.3f\tI0=%.3f\tω0=%.3f\tM1tar=%.3f\tI1=%.3f\tω1=%.3f\n", motorCmd.m0target, DFOC_M0_Current(), DFOC_M0_Velocity(), motorCmd.m1target, DFOC_M1_Current(), DFOC_M1_Velocity());
 		time_now = micros();
-		Serial.printf("loop time = %d us\n", (time_now - time_prev) / 200);
+		// Serial.printf("loop time = %d us\n", (time_now - time_prev) / 200);
 		time_prev = micros();
 	}
 	// 接收串口
@@ -168,49 +168,58 @@ void comm()
 	}
 	else if (cmdSource == 1)
 	{
-		while (Serial1.available())
+		if (pBuf >= &buf[9])
 		{
-			receive_prev = micros();
-			uint8_t tmp = Serial1.read();
-			if (pBuf == &buf[9])
+			if (isDebug)
 			{
-				if (isDebug)
-				{
-					/*
-					 for (int i = 0; i < 9; i++)
-					 {
-						 Serial.print(buf[i], HEX);
-					 }
-					 Serial.print("\n");
-					 */
-				}
-				// 仅对好数据做出响应，坏数据直接忽视，沿用之前的
-				if (buf[0] == 0 || buf[0] == 1 || buf[0] == 2 || buf[0] == 10)
-				{
-					motorCmd.mode = buf[0];
-					uint32_t m0byte = (uint32_t)buf[4] << 24 | (uint32_t)buf[3] << 16 | (uint32_t)buf[2] << 8 | (uint32_t)buf[1];
-					uint32_t m1byte = (uint32_t)buf[8] << 24 | (uint32_t)buf[7] << 16 | (uint32_t)buf[6] << 8 | (uint32_t)buf[5];
-					memcpy(&motorCmd.m0target, &m0byte, 4);
-					memcpy(&motorCmd.m1target, &m1byte, 4);
-					if (isnanf(motorCmd.m0target) || isnanf(motorCmd.m1target))
-					{
-						motorCmd.m0target = 0;
-						motorCmd.m1target = 0;
-					}
-					motorCmd.m1target = (0 - motorCmd.m1target);
-					printPara();
-				}
-				pBuf = &buf[0]; // 指针归位，不管是好数据还是坏数据，接收到结束符了就重新开始下一帧
+				/*
+				 for (int i = 0; i < 9; i++)
+				 {
+					 Serial.print(buf[i], HEX);
+				 }
+				 Serial.print("\n");
+				 */
 			}
-			else
+			// 仅对好数据做出响应，坏数据直接忽视，沿用之前的
+			if (buf[0] == 0 || buf[0] == 1 || buf[0] == 2 || buf[0] == 10)
 			{
+				motorCmd.mode = buf[0];
+				uint32_t m0byte = (uint32_t)buf[4] << 24 | (uint32_t)buf[3] << 16 | (uint32_t)buf[2] << 8 | (uint32_t)buf[1];
+				uint32_t m1byte = (uint32_t)buf[8] << 24 | (uint32_t)buf[7] << 16 | (uint32_t)buf[6] << 8 | (uint32_t)buf[5];
+				memcpy(&motorCmd.m0target, &m0byte, 4);
+				memcpy(&motorCmd.m1target, &m1byte, 4);
+				if (isnanf(motorCmd.m0target) || isnanf(motorCmd.m1target))
+				{
+					motorCmd.m0target = 0;
+					motorCmd.m1target = 0;
+				}
+				motorCmd.m1target = (0 - motorCmd.m1target);
+				printPara();
+			}
+			pBuf = &buf[0]; // 指针归位，不管是好数据还是坏数据，接收到结束符了就重新开始下一帧
+		}
+		else
+		{
+			while (Serial1.available())
+			{
+				receive_prev = micros();
+				uint8_t tmp = Serial1.read();
+				//Serial.printf("%02X", tmp);
+				//Serial.printf("\npBuf >= &buf[9]\n");
 				*pBuf = tmp; // 接收到的字节写入缓存
-				pBuf++;		 // 指针加一
+				if (pBuf == &buf[15])
+				{
+					pBuf = &buf[0]; // 指针溢出复位
+				}
+				else
+				{
+					pBuf++; // 指针加一
+				}
 			}
 		}
 		if (micros() - receive_prev >= 200)
 		{
-			pBuf = &buf[0];
+			pBuf = &buf[0]; // 通信超时复位
 		}
 	}
 }

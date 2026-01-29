@@ -214,7 +214,7 @@ static void cli_cmd_pid(int argc, char *argv[]) {
 			pid_pitch.Kd = atoff(argv[4]);
 			arm_pid_init_f32(&pid_pitch, 0);
 			printf("Set PID of pitch: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
-								pid_pitch.Kp, pid_pitch.Ki, pid_pitch.Kd);
+					pid_pitch.Kp, pid_pitch.Ki, pid_pitch.Kd);
 		} else {
 			printf("Need full parameter :)\r\n");
 		}

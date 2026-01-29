@@ -7,13 +7,18 @@
 
 #include "wheel_motor.h"
 
+uint8_t buf[9];
+
+void WM_Enable() {
+	//__HAL_UART_ENABLE_DMA(&huart4, UART_DMA_TX);
+}
+
 void WM_Send(motorCommand mot_cmd) {
-	uint8_t buf[10] = { 0 };
 	buf[0] = mot_cmd.mode;
 	memcpy(&buf[1], &mot_cmd.m0target, 4);
 	memcpy(&buf[5], &mot_cmd.m1target, 4);
-	buf[9] = 0xff;
-	HAL_UART_Transmit(&huart4, &buf[0], sizeof(buf), HAL_MAX_DELAY);
+	HAL_UART_Transmit_DMA(&huart4, &buf[0], sizeof(buf));
+	//HAL_UART_Transmit(&huart4, &buf[0], sizeof(buf), HAL_MAX_DELAY);
 }
 
 void WM_Disable() {
@@ -24,7 +29,7 @@ void WM_Disable() {
 	WM_Send(a);
 }
 
-WM_SendVelocity(float m0, float m1) {
+void WM_SendVelocity(float m0, float m1) {
 	motorCommand a;
 	a.mode = 1;
 	a.m0target = m0;

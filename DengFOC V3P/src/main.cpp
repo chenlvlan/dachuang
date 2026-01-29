@@ -28,6 +28,9 @@ const bool isDebug = 0;
 const uint8_t cmdSource = 1;
 const float torqueConstant = 0.2;
 
+long time_prev, time_now;
+long receive_prev;
+
 void comm();
 void parseCommand(String cmd);
 void printPara();
@@ -47,6 +50,7 @@ void setup()
 int count = 0;
 void loop()
 {
+
 	runFOC();
 	// DFOC_M0_setTorque(1);
 	// DFOC_M1_setTorque(1);
@@ -119,7 +123,7 @@ void loop()
 	// DFOC_M1_setVelocity(serial_motor_target());
 
 	count++;
-	if (count > 100)
+	if (count > 200)
 	{
 		// Serial.println(motorCmd.m0target);
 		count = 0;
@@ -128,6 +132,9 @@ void loop()
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Angle(), S0_electricalAngle(),S1_electricalAngle());
 		// Serial.printf("%f,%f,%f\n", DFOC_M0_Current(), DFOC_M1_Current(),serial_motor_target());
 		// Serial.printf("M0tar=%.3f\tI0=%.3f\tω0=%.3f\tM1tar=%.3f\tI1=%.3f\tω1=%.3f\n", motorCmd.m0target, DFOC_M0_Current(), DFOC_M0_Velocity(), motorCmd.m1target, DFOC_M1_Current(), DFOC_M1_Velocity());
+		time_now = micros();
+		Serial.printf("loop time = %d us\n", (time_now - time_prev) / 200);
+		time_prev = micros();
 	}
 	// 接收串口
 	// serialReceiveUserCommand();
@@ -163,8 +170,9 @@ void comm()
 	{
 		while (Serial1.available())
 		{
+			receive_prev = micros();
 			uint8_t tmp = Serial1.read();
-			if (tmp == 0xff)
+			if (pBuf == &buf[9])
 			{
 				if (isDebug)
 				{
@@ -199,6 +207,10 @@ void comm()
 				*pBuf = tmp; // 接收到的字节写入缓存
 				pBuf++;		 // 指针加一
 			}
+		}
+		if (micros() - receive_prev >= 200)
+		{
+			pBuf = &buf[0];
 		}
 	}
 }

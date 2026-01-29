@@ -137,7 +137,7 @@ float DFOC_M1_ANGLE_PID(float error)
 // 归一化角度到 [0,2PI]
 float _normalizeAngle(float angle)
 {
-	float a = fmod(angle, 2 * PI); // 取余运算可以用于归一化，列出特殊值例子算便知
+	float a = fmodf(angle, 2 * PI); // 取余运算可以用于归一化，列出特殊值例子算便知
 	return a >= 0 ? a : (a + 2 * PI);
 	// 三目运算符。格式：condition ? expr1 : expr2
 	// 其中，condition 是要求值的条件表达式，如果条件成立，则返回 expr1 的值，否则返回 expr2 的值。可以将三目运算符视为 if-else 语句的简化形式。
@@ -223,8 +223,8 @@ void M0_setTorque(float Uq, float angle_el)
 	angle_el = _normalizeAngle(angle_el + _PI_2);
 	int sector = floor(angle_el / _PI_3) + 1;
 	// calculate the duty cycles
-	float T1 = _SQRT3 * sin(sector * _PI_3 - angle_el) * Uq / voltage_power_supply;
-	float T2 = _SQRT3 * sin(angle_el - (sector - 1.0) * _PI_3) * Uq / voltage_power_supply;
+	float T1 = _SQRT3 * sinf(sector * _PI_3 - angle_el) * Uq / voltage_power_supply;
+	float T2 = _SQRT3 * sinf(angle_el - (sector - 1.0) * _PI_3) * Uq / voltage_power_supply;
 	float T0 = 1 - T1 - T2;
 
 	float Ta, Tb, Tc;
@@ -283,8 +283,8 @@ void M1_setTorque(float Uq, float angle_el)
 	angle_el = _normalizeAngle(angle_el + _PI_2);
 	int sector = floor(angle_el / _PI_3) + 1;
 	// calculate the duty cycles
-	float T1 = _SQRT3 * sin(sector * _PI_3 - angle_el) * Uq / voltage_power_supply;
-	float T2 = _SQRT3 * sin(angle_el - (sector - 1.0) * _PI_3) * Uq / voltage_power_supply;
+	float T1 = _SQRT3 * sinf(sector * _PI_3 - angle_el) * Uq / voltage_power_supply;
+	float T2 = _SQRT3 * sinf(angle_el - (sector - 1.0) * _PI_3) * Uq / voltage_power_supply;
 	float T0 = 1 - T1 - T2;
 
 	float Ta, Tb, Tc;
@@ -565,11 +565,20 @@ void DFOC_M1_set_Force_Angle(float Target) // 力位闭环
 	DFOC_M1_setTorque(DFOC_M1_ANGLE_PID((Target - DFOC_M1_Angle()) * 180 / PI)); // 改进后
 }
 
+uint8_t gPCcount = 0;
+
 void runFOC()
 {
+	gPCcount++;
+	if (gPCcount >= 4)
+	{
+		gPCcount = 0;
+		S0.Sensor_update();
+		S1.Sensor_update();
+	}
 	//====传感器更新====
-	S0.Sensor_update();
-	S1.Sensor_update();
+	// S0.Sensor_update();
+	// S1.Sensor_update();
 	CS_M0.getPhaseCurrents();
 	CS_M1.getPhaseCurrents();
 

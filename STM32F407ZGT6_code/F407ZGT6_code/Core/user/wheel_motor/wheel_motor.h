@@ -9,9 +9,11 @@
 #define USER_WHEEL_MOTOR_WHEEL_MOTOR_H_
 
 #include "main.h"
+#include "dma.h"
+#include "usart.h"
 #include "string.h"
 
-extern UART_HandleTypeDef huart4;
+//extern UART_HandleTypeDef huart4;
 
 typedef struct {
 	uint8_t mode;
@@ -19,6 +21,7 @@ typedef struct {
 	float m1target;
 } motorCommand;
 
+void WM_Enable();
 void WM_Send(motorCommand mot_cmd);
 void WM_Disable();
 void WM_SendVelocity(float m0,float m1);

@@ -57,6 +57,7 @@ void appSetup() {
 	mpu6500_SPIInit();
 	cli_init();
 
+
 	printf("CLI ready, type 'help'\r\n");
 	//HAL_Delay(150); //等待供电稳定
 	JM_CommInit();
@@ -95,12 +96,12 @@ void appLoop() {
 		//fivebar_inverse_kinematics(&legData);
 		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
 		//		wheel_torque_cmd);
-/*
-		JM_PosAbsMode(idLF, legData.theta_f);
-		JM_PosAbsMode(idRF, legData.theta_f);
-		JM_PosAbsMode(idLR, legData.theta_r);
-		JM_PosAbsMode(idRR, legData.theta_r);
-*/
+		/*
+		 JM_PosAbsMode(idLF, legData.theta_f);
+		 JM_PosAbsMode(idRF, legData.theta_f);
+		 JM_PosAbsMode(idLR, legData.theta_r);
+		 JM_PosAbsMode(idRR, legData.theta_r);
+		 */
 		WM_SendTorque(wheel_torque_cmd, wheel_torque_cmd);
 	}
 	cli_poll();
@@ -163,6 +164,5 @@ void control_loop(float pitch_meas) {
 
 	//pos_err = pitch;   // pitch 越大，位置偏移越多
 	//x_ref += arm_pid_f32(&pid_pos, pitch_meas);
-
 	//x_ref = clampf(x_ref, -XREF_LIMIT, XREF_LIMIT);
 }

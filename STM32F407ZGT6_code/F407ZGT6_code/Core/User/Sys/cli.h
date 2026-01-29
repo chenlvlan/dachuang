@@ -35,6 +35,4 @@ void cli_poll(void);
 /* UART 接收中断里会用到（你不直接调用） */
 void cli_uart_rx_char(uint8_t ch);
 
-
-
 #endif /* USER_SYS_CLI_H_ */

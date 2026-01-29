@@ -15,21 +15,21 @@
 #define EPS 1e-6f
 
 /*
-typedef struct {
-	float L1;   // 前大腿长度
-	float L2;   // 后大腿长度
-	float L3;   // 前小腿长度
-	float L4;   // 后小腿长度
-	float d;    // 前后电机水平间距
-} FiveBarGeom_t;
+ typedef struct {
+ float L1;   // 前大腿长度
+ float L2;   // 后大腿长度
+ float L3;   // 前小腿长度
+ float L4;   // 后小腿长度
+ float d;    // 前后电机水平间距
+ } FiveBarGeom_t;
 
-typedef struct {
-	float theta_f_min;   // 前腿最小角（rad）
-	float theta_f_max;   // 前腿最大角
-	float theta_r_min;   // 后腿最小角
-	float theta_r_max;   // 后腿最大角
-} FiveBarLimit_t;
-*/
+ typedef struct {
+ float theta_f_min;   // 前腿最小角（rad）
+ float theta_f_max;   // 前腿最大角
+ float theta_r_min;   // 后腿最小角
+ float theta_r_max;   // 后腿最大角
+ } FiveBarLimit_t;
+ */
 
 typedef struct {
 	float L1;   // 前大腿长度
@@ -45,7 +45,7 @@ typedef struct {
 	float y;   //目标y位置
 	float theta_f;   //前腿电机角
 	float theta_r;   //后腿电机角
-	uint8_t status;//状态
+	uint8_t status;   //状态
 } legData_t;
 
 typedef enum {

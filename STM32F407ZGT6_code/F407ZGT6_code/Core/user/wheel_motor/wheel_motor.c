@@ -72,12 +72,20 @@ void WM_SendRestart() {
 void WM_Receive(float *m0velocity, float *m0torque, float *m1velocity,
 		float *m1torque) {
 	//仅当有新帧的时候更新传入的指针
-	if(frameReady==1){
-		frameReady=0;
-		uint32_t m0v=(uint32_t)rxData[3] << 24 | (uint32_t)rxData[2] << 16 | (uint32_t)rxData[1] << 8 | (uint32_t)buf[0];
-		uint32_t m0t;
-		uint32_t m1v;
-		uint32_t m1t;
+	if (frameReady == 1 && frameToDealLen == 16) {
+		frameReady = 0;
+		uint32_t m0v = (uint32_t) rxData[3] << 24 | (uint32_t) rxData[2] << 16
+				| (uint32_t) rxData[1] << 8 | (uint32_t) rxData[0];
+		uint32_t m0t = (uint32_t) rxData[7] << 24 | (uint32_t) rxData[6] << 16
+				| (uint32_t) rxData[5] << 8 | (uint32_t) rxData[4];
+		uint32_t m1v = (uint32_t) rxData[11] << 24 | (uint32_t) rxData[10] << 16
+				| (uint32_t) rxData[9] << 8 | (uint32_t) rxData[8];
+		uint32_t m1t = (uint32_t) rxData[15] << 24 | (uint32_t) rxData[14] << 16
+				| (uint32_t) rxData[13] << 8 | (uint32_t) rxData[12];
+		memcpy(m0velocity, &m0v, 4);
+		memcpy(m0torque, &m0t, 4);
+		memcpy(m1velocity, &m1v, 4);
+		memcpy(m1torque, &m1t, 4);
 	}
 }
 

@@ -35,8 +35,8 @@ void WM_SendDisable();
 void WM_SendVelocity(float m0, float m1);
 void WM_SendTorque(float m0, float m1);
 void WM_SendRestart();
-void WM_Receive(float m0velocity, float m0torque, float m1velocity,
-		float m1torque);
+void WM_Receive(float *m0velocity, float *m0torque, float *m1velocity,
+		float *m1torque);
 void uart4DMA(UART_HandleTypeDef *huart);
 
 #endif /* USER_WHEEL_MOTOR_WHEEL_MOTOR_H_ */

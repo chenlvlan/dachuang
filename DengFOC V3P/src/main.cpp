@@ -197,6 +197,17 @@ void comm()
 				printPara();
 			}
 			pBuf = &buf[0]; // 指针归位，不管是好数据还是坏数据，接收到结束符了就重新开始下一帧
+			// 反馈当前速度和力矩
+			float m0v = DFOC_M0_Velocity();
+			float m0t = DFOC_M0_Current() * torqueConstant;
+			float m1v = DFOC_M1_Velocity();
+			float m1t = DFOC_M1_Current() * torqueConstant;
+			uint8_t txBuf[16];
+			memcpy(&txBuf[0], &m0v, 4);
+			memcpy(&txBuf[4], &m0t, 4);
+			memcpy(&txBuf[8], &m1v, 4);
+			memcpy(&txBuf[12], &m1t, 4);
+			Serial1.write(&txBuf[0], 16);
 		}
 		else
 		{

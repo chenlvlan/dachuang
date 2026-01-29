@@ -52,7 +52,7 @@ void HVHP(bool isEN) {
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
-	WM_Restart(); //复位驱动器
+	WM_SendRestart(); //复位驱动器
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	mpu6500_SPIInit();
 	cli_init();
@@ -78,7 +78,7 @@ void appSetup() {
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 	control_init();
-	HAL_Delay(3000);
+	HAL_Delay(2000);
 }
 
 void appLoop() {

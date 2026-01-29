@@ -204,8 +204,8 @@ void comm()
 			{
 				receive_prev = micros();
 				uint8_t tmp = Serial1.read();
-				//Serial.printf("%02X", tmp);
-				//Serial.printf("\npBuf >= &buf[9]\n");
+				// Serial.printf("%02X", tmp);
+				// Serial.printf("\npBuf >= &buf[9]\n");
 				*pBuf = tmp; // 接收到的字节写入缓存
 				if (pBuf == &buf[15])
 				{

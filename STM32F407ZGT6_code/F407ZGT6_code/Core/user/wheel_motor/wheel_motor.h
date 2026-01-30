@@ -12,6 +12,7 @@
 #include "dma.h"
 #include "usart.h"
 #include "string.h"
+#include <stdio.h>
 
 //extern UART_HandleTypeDef huart4;
 
@@ -30,7 +31,7 @@ enum wheelMotorMode {
 };
 
 void WM_CommInit();
-void WM_Send(wheelMotorData_t mot_cmd);
+void WM_Send(wheelMotorData_t *mot_cmd);
 void WM_SendDisable();
 void WM_SendVelocity(float m0, float m1);
 void WM_SendTorque(float m0, float m1);

@@ -12,6 +12,7 @@ bool doMotionCtrlCycle = 0;
 legData_t legData = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
 		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
 		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -150.0f };
+wheelMotorData_t wheelMotorData = { .mode = WM_Torque };
 
 float quat_nom[4] = { 0 };
 float roll, yaw, pitch;
@@ -57,7 +58,6 @@ void appSetup() {
 	mpu6500_SPIInit();
 	cli_init();
 
-
 	printf("CLI ready, type 'help'\r\n");
 	//HAL_Delay(150); //等待供电稳定
 	JM_CommInit();
@@ -94,17 +94,25 @@ void appLoop() {
 		control_loop(pitch);
 		//legData.x = -x_ref;
 		//fivebar_inverse_kinematics(&legData);
-		printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
-				wheel_torque_cmd);
+		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
+		//		wheel_torque_cmd);
 		/*
 		 JM_PosAbsMode(idLF, legData.theta_f);
 		 JM_PosAbsMode(idRF, legData.theta_f);
 		 JM_PosAbsMode(idLR, legData.theta_r);
 		 JM_PosAbsMode(idRR, legData.theta_r);
 		 */
-		WM_SendTorque(wheel_torque_cmd, wheel_torque_cmd);
+		wheelMotorData.m0target = wheel_torque_cmd;
+		wheelMotorData.m1target = wheel_torque_cmd;
+		//WM_SendTorque(wheel_torque_cmd, wheel_torque_cmd);
+		WM_Send(&wheelMotorData);
+		WM_Receive(&wheelMotorData.m0velocity, &wheelMotorData.m0torque,
+				&wheelMotorData.m1velocity, &wheelMotorData.m1torque);
 		//WM_SendTorque(0.00114, 0.00114);
 		//WM_Disable();
+		printf("%.5f, %.5f, %.5f, %.5f\r\n", wheelMotorData.m0velocity,
+				wheelMotorData.m0torque, wheelMotorData.m1velocity,
+				wheelMotorData.m1torque);
 	}
 	cli_poll();
 }

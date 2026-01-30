@@ -11,7 +11,7 @@
 bool doMotionCtrlCycle = 0;
 legData_t legData = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
 		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
-		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -150.0f };
+		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -140.0f };
 wheelMotorData_t wheelMotorData = { .mode = WM_Torque };
 
 float quat_nom[4] = { 0 };
@@ -21,15 +21,15 @@ float roll, yaw, pitch;
 
 /* PID 实例（DSP库要求） */
 arm_pid_instance_f32 pid_pitch;     // 姿态 PID（输出力矩）
-arm_pid_instance_f32 pid_pos;       // 轮子前后位置 PID
+arm_pid_instance_f32 pid_speed;
+//arm_pid_instance_f32 pid_x;
 
 /* 状态量（全局共享） */
 float pitch;        // 传感器输入
-float pitch_rate;   // 可选，用于D项
-
-float x_wheel;      // 当前轮子前后位置（编码器）
+//float pitch_rate;   // 可选，用于D项
+float pitch_avg = 0.0f;
 float x_ref;        // 轮子前后目标位置（输出）
-
+float pitch_lpf_alpha = 0.9f;  // 时间常数 ~1s
 float wheel_torque_cmd;  // 最终输出力矩
 
 /* 姿态 PID（力矩环，快） */
@@ -37,14 +37,13 @@ float wheel_torque_cmd;  // 最终输出力矩
 #define PITCH_KI   0.0000000005f/CTRL_DT
 #define PITCH_KD   0.0005f/CTRL_DT
 
-/* 位置 PID（慢，调姿态零点） */
-#define POS_KP     0.6f
-#define POS_KI     0.0f/CTRL_DT
-#define POS_KD     0.1f/CTRL_DT
+#define SPEED_KP 0.01f
+#define SPEED_KI 0.0f/CTRL_DT
+#define SPEED_KD 0.0f/CTRL_DT
 
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
-#define XREF_LIMIT     10.0f   // ±10cm
+#define XREF_LIMIT     20.0f   // ±10cm
 
 void HVHP(bool isEN) {
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, (GPIO_PinState) isEN);
@@ -91,17 +90,17 @@ void appLoop() {
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
 				&pitch, &yaw);
 		//printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
-		control_loop(pitch);
-		//legData.x = -x_ref;
-		//fivebar_inverse_kinematics(&legData);
-		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
-		//		wheel_torque_cmd);
-		/*
-		 JM_PosAbsMode(idLF, legData.theta_f);
-		 JM_PosAbsMode(idRF, legData.theta_f);
-		 JM_PosAbsMode(idLR, legData.theta_r);
-		 JM_PosAbsMode(idRR, legData.theta_r);
-		 */
+		control_loop();
+		legData.x = x_ref;
+		fivebar_inverse_kinematics(&legData);
+		printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
+				wheel_torque_cmd);
+
+		JM_PosAbsMode(idLF, legData.theta_f);
+		JM_PosAbsMode(idRF, legData.theta_f);
+		JM_PosAbsMode(idLR, legData.theta_r);
+		JM_PosAbsMode(idRR, legData.theta_r);
+
 		wheelMotorData.m0target = wheel_torque_cmd;
 		wheelMotorData.m1target = wheel_torque_cmd;
 		//WM_SendTorque(wheel_torque_cmd, wheel_torque_cmd);
@@ -110,9 +109,9 @@ void appLoop() {
 				&wheelMotorData.m1velocity, &wheelMotorData.m1torque);
 		//WM_SendTorque(0.00114, 0.00114);
 		//WM_Disable();
-		printf("%.5f, %.5f, %.5f, %.5f\r\n", wheelMotorData.m0velocity,
-				wheelMotorData.m0torque, wheelMotorData.m1velocity,
-				wheelMotorData.m1torque);
+		//printf("%.5f, %.5f, %.5f, %.5f\r\n", wheelMotorData.m0velocity,
+		//		wheelMotorData.m0torque, wheelMotorData.m1velocity,
+		//		wheelMotorData.m1torque);
 	}
 	cli_poll();
 }
@@ -129,50 +128,46 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	}
 }
 
-void control_init(void) {
+void control_init() {
 	/* pitch PID */
 	pid_pitch.Kp = PITCH_KP;
 	pid_pitch.Ki = PITCH_KI;
 	pid_pitch.Kd = PITCH_KD;
-	//pid_pitch.
 	arm_pid_init_f32(&pid_pitch, 1);
 
-	/* position PID */
-	pid_pos.Kp = POS_KP;
-	pid_pos.Ki = POS_KI;
-	pid_pos.Kd = POS_KD;
-	arm_pid_init_f32(&pid_pos, 1);
+	pid_speed.Kp = SPEED_KP;
+	pid_speed.Ki = SPEED_KI;
+	pid_speed.Kd = SPEED_KD;
+	arm_pid_init_f32(&pid_speed, 1);
 
+	pitch_avg = 0.0f;
 	x_ref = 0.0f;
 	wheel_torque_cmd = 0.0f;
 }
 
-void control_loop(float pitch_meas) {
+void control_loop() {
+	/* ========== 1. 姿态控制（快） ========== */
+	float pitch_err = 0.0f - pitch;
+	float torque_balance = arm_pid_f32(&pid_pitch, pitch_err);
 
+	/* ========== 2. 速度阻尼（防乱跑） ========== */
 	/*
-	 float alpha = 0.9f; // 滤波系数，0~1
-	 pitch_filt = (1 - alpha) * pitch_filt + alpha * pitch_raw;
-	 //pitch_filt = pitch_raw;
-	 printf("%.5f, ", pitch_filt);
+	 float speed_err = 0.0f
+	 - (wheelMotorData.m0velocity + wheelMotorData.m1velocity) / 2;
+	 float torque_damp = arm_pid_f32(&pid_speed, speed_err);
 	 */
 
-	float pitch_err;
-	float pos_err;
+	/* ========== 3. 力矩合成 ========== */
+	float torque = torque_balance/* + torque_damp*/;
+	wheel_torque_cmd = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);
 
-	//wheel_torque_cmd=PITCH_KP*(0-pitch_meas);
-	//pitch = pitch_meas;
-
-	/* ---------- 1️⃣ 姿态环：算力矩 ---------- */
-	pitch_err = 0.5f - pitch_meas;   // 目标 pitch = 0
-	wheel_torque_cmd = arm_pid_f32(&pid_pitch, pitch_err);
-	wheel_torque_cmd = clampf(wheel_torque_cmd, -TORQUE_LIMIT, TORQUE_LIMIT);
-
-	/* ---------- 2️⃣ 位置环：动态调 x_ref ---------- */
-	/* 核心思想：
-	 pitch ≠ 0 → 轮子应该前/后挪来“接住身体”
-	 */
-
-	//pos_err = pitch;   // pitch 越大，位置偏移越多
-	//x_ref += arm_pid_f32(&pid_pos, pitch_meas);
-	//x_ref = clampf(x_ref, -XREF_LIMIT, XREF_LIMIT);
+	/* ========== 4. pitch 慢平均（给腿用） ========== */
+	//pitch_avg += pitch_lpf_alpha * (pitch - pitch_avg);
+	float Kx = 2.0f;  // m / rad / s（非常小）
+	/* pitch_avg ≠ 0 说明结构不平衡 */
+	//x_ref += Kx * pitch_avg;
+	x_ref = /*Kx * pitch+*/0.5f
+			* (((wheelMotorData.m0velocity - wheelMotorData.m1velocity) / 2)
+					- 0.5);
+	x_ref = clampf(x_ref, -XREF_LIMIT, XREF_LIMIT);
 }

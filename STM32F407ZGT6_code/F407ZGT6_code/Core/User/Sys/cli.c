@@ -135,6 +135,7 @@ static void cli_cmd_help(int argc, char *argv[]) {
 	printf("  set <var> <value>\r\n");
 	printf("  get <var>\r\n");
 	printf("  ik <x> <y>\r\n");
+	printf("  pid <controller name> <Kp> <Ki> <Kd>\r\n");
 }
 
 /* -------- set -------- */
@@ -215,6 +216,21 @@ static void cli_cmd_pid(int argc, char *argv[]) {
 			arm_pid_init_f32(&pid_pitch, 0);
 			printf("Set PID of pitch: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
 					pid_pitch.Kp, pid_pitch.Ki, pid_pitch.Kd);
+		} else {
+			printf("Need full parameter :)\r\n");
+		}
+	} else if (strcmp(argv[1], "speed") == 0) {
+		if (argc == 2) {
+			//pid pitch
+			printf("Current PID of speed: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
+					pid_speed.Kp, pid_speed.Ki, pid_speed.Kd);
+		} else if (argc == 5) {
+			pid_speed.Kp = atoff(argv[2]);
+			pid_speed.Ki = atoff(argv[3]);
+			pid_speed.Kd = atoff(argv[4]);
+			arm_pid_init_f32(&pid_speed, 0);
+			printf("Set PID of speed: Kp = %.3e, Ki = %.3e, Kd = %.3e\r\n",
+					pid_speed.Kp, pid_speed.Ki, pid_speed.Kd);
 		} else {
 			printf("Need full parameter :)\r\n");
 		}

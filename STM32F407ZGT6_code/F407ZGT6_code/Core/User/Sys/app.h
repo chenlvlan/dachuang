@@ -35,7 +35,7 @@ void HVHP(bool isEN);
 //void cli_init(void);
 //void cli_handle_command(char *cmd);
 
-void control_init(void);
-void control_loop(float pitch_raw);
+void control_init();
+void control_loop();
 
 #endif /* USER_SYS_APP_H_ */

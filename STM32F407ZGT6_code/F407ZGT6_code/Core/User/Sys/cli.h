@@ -17,6 +17,7 @@
 
 extern legData_t legData;
 extern arm_pid_instance_f32 pid_pitch;
+extern arm_pid_instance_f32 pid_speed;
 //#include "midware.h"
 
 /* ================= 配置 ================= */

@@ -8,11 +8,28 @@
 #ifndef USER_SYS_COMPUTE_H_
 #define USER_SYS_COMPUTE_H_
 
+#include "main.h"
 #include <math.h>
 #include <stdbool.h>
 #include "arm_math.h"
 
+extern UART_HandleTypeDef huart1;
+
 #define EPS 1e-6f
+#define CTRL_DT   0.02f   // 20ms, 50Hz
+
+/* 姿态 PID（力矩环，快） */
+#define PITCH_KP   0.01f
+#define PITCH_KI   0.0000000005f/CTRL_DT
+#define PITCH_KD   0.0005f/CTRL_DT
+
+#define SPEED_KP 0.01f
+#define SPEED_KI 0.0f/CTRL_DT
+#define SPEED_KD 0.0f/CTRL_DT
+
+/* 限幅 */
+#define TORQUE_LIMIT   0.11f
+#define XREF_LIMIT     20.0f   // ±20mm
 
 /*
  typedef struct {
@@ -48,6 +65,20 @@ typedef struct {
 	uint8_t status;   //状态
 } legData_t;
 
+typedef struct {
+	//输入
+	float roll;
+	float pitch;
+	float yaw;
+	float m0speed;
+	float m1speed;
+	float m0torque;   //兼做输出
+	float m1torque;
+	//输出
+	float xRefLeft;
+	float xRefRight;
+} controlData_t;
+
 typedef enum {
 	IK_OK = 0, IK_OUT_OF_REACH,     // 足端不可达
 	IK_NUMERIC_ERROR,   // acos / sqrt 数值错误
@@ -61,4 +92,8 @@ float clampf(float x, float min, float max);
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 		float *yaw);
 
+void control_init();
+
+void control_loop(controlData_t *ctrlData);
+void control_loop_simulink(controlData_t *ctrlData);
 #endif /* USER_SYS_COMPUTE_H_ */

@@ -8,6 +8,10 @@
 #include "compute.h"
 
 //#define DSP
+/* PID 实例（DSP库要求） */
+arm_pid_instance_f32 pid_pitch;     // 姿态 PID（输出力矩）
+arm_pid_instance_f32 pid_speed;
+//arm_pid_instance_f32 pid_x;
 
 float clampf(float x, float min, float max) {
 	if (x < min)
@@ -113,4 +117,56 @@ void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 	*roll *= 57.29578f;
 	*yaw *= 57.29578f;
 	*pitch *= 57.29578f;
+}
+
+void control_init() {
+	/* pitch PID */
+	pid_pitch.Kp = PITCH_KP;
+	pid_pitch.Ki = PITCH_KI;
+	pid_pitch.Kd = PITCH_KD;
+	arm_pid_init_f32(&pid_pitch, 1);
+
+	pid_speed.Kp = SPEED_KP;
+	pid_speed.Ki = SPEED_KI;
+	pid_speed.Kd = SPEED_KD;
+	arm_pid_init_f32(&pid_speed, 1);
+
+	//pitch_avg = 0.0f;
+	//x_ref = 0.0f;
+	//wheel_torque_cmd = 0.0f;
+}
+
+void control_loop(controlData_t *ctrlData) {
+	/* ========== 1. 姿态控制（快） ========== */
+	float pitch_err = 0.0f - ctrlData->pitch;
+	float torque_balance = arm_pid_f32(&pid_pitch, pitch_err);
+
+	/* ========== 3. 力矩合成 ========== */
+	float torque = torque_balance/* + torque_damp*/;
+	ctrlData->m0torque = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);
+	ctrlData->m1torque = ctrlData->m0torque;
+
+	/* ========== 4. pitch 慢平均（给腿用） ========== */
+	//pitch_avg += pitch_lpf_alpha * (pitch - pitch_avg);//低通滤波
+	float Kx = 2.0f;  // m / rad / s（非常小）
+	/* pitch_avg ≠ 0 说明结构不平衡 */
+	//x_ref += Kx * pitch_avg;
+	ctrlData->xRefLeft = /*Kx * pitch+*/0.5f
+			* (((ctrlData->m0speed + ctrlData->m1speed) / 2.0f) - 0.0f);
+	ctrlData->xRefLeft = clampf(ctrlData->xRefLeft, -XREF_LIMIT, XREF_LIMIT);
+	ctrlData->xRefRight = ctrlData->xRefLeft;
+}
+
+void control_loop_simulink(controlData_t *ctrlData) {
+	uint8_t tmp[16];
+	memcpy(&tmp[0], &ctrlData->pitch, 4);
+	float speed = ((ctrlData->m0speed + ctrlData->m1speed) / 2.0f);
+	float torque = ((ctrlData->m0torque + ctrlData->m1torque) / 2.0f);
+	memcpy(&tmp[4], &speed, 4);
+	memcpy(&tmp[8], &torque, 4);
+	tmp[12] = 0x00;
+	tmp[13] = 0x00;
+	tmp[14] = 0x80;
+	tmp[15] = 0x7f;
+	HAL_UART_Transmit(&huart1, &tmp[0], 16, 0xffff);
 }

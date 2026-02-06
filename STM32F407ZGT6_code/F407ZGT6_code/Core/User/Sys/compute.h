@@ -23,9 +23,9 @@ extern UART_HandleTypeDef huart1;
 #define CTRL_DT   0.02f   // 20ms, 50Hz
 
 /* 姿态 PID（力矩环，快） */
-#define PITCH_KP   0.02f
+#define PITCH_KP   0.01f
 #define PITCH_KI   0.0000000005f/CTRL_DT
-#define PITCH_KD   0.005f/CTRL_DT
+#define PITCH_KD   0.0005f/CTRL_DT
 
 #define SPEED_KP 0.01f
 #define SPEED_KI 0.0f/CTRL_DT

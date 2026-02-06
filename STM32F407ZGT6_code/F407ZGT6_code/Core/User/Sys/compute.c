@@ -7,8 +7,8 @@
 
 #include "compute.h"
 
-#define rxBufSize 32
-#define rxDataSize 32
+#define rxBufSize 256
+#define rxDataSize 256
 
 //#define DSP
 /* PID 实例（DSP库要求） */
@@ -228,8 +228,8 @@ void uart1DMA(UART_HandleTypeDef *huart) {
 		uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
 		//printf("NDTR=%d\r\n", __HAL_DMA_GET_COUNTER(huart1.hdmarx));
 		//HAL_UART_DMAStop(&huart1);
-		//printf("frame_len=%d\r\n",frame_len);
-		if (frame_len == 16) {
+		printf("DMA %d\r\n", frame_len);
+		if (frame_len >= 16) {
 			frameToDealLen = frame_len;
 			frameReady = 1;  // 标记帧就绪
 			memcpy(&rxData[0], &rxBuf[0], frame_len);

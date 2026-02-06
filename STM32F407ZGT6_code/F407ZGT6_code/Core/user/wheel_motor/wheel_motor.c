@@ -10,14 +10,14 @@
 #define rxBufSize 32
 #define rxDataSize 32
 
-uint8_t txBuf[9];
-uint8_t rxBuf[rxBufSize];
-uint8_t rxData[rxDataSize];
-volatile uint8_t rxDataLen = 0;
-volatile uint16_t rxReadPtr = 0;  // 读指针（用户维护）
+static uint8_t txBuf[9];
+static uint8_t rxBuf[rxBufSize];
+static uint8_t rxData[rxDataSize];
+//volatile uint8_t rxDataLen = 0;
+//volatile uint16_t rxReadPtr = 0;  // 读指针（用户维护）
 //volatile uint8_t rxCompleteFlag = 0;
-volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
-volatile uint8_t frameReady = 0;   // 帧就绪标志
+static volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
+static volatile uint8_t frameReady = 0;   // 帧就绪标志
 
 void WM_CommInit() {
 	// 方法 A: 定长接收（Normal 模式）- 不推荐用于通用接收

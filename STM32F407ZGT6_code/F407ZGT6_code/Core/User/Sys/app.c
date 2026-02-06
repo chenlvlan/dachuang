@@ -32,10 +32,11 @@ void HVHP(bool isEN) {
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
+	WM_CommInit();
 	WM_SendRestart(); //复位驱动器
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	mpu6500_SPIInit();
-	cli_init();
+	//cli_init();
 
 	printf("CLI ready, type 'help'\r\n");
 	//HAL_Delay(150); //等待供电稳定
@@ -57,6 +58,7 @@ void appSetup() {
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 	control_init();
+	control_comm_init();
 	HAL_Delay(2000);
 }
 
@@ -74,25 +76,31 @@ void appLoop() {
 		ctrlData.pitch = pitch;
 		ctrlData.yaw = yaw;
 
-		control_loop(&ctrlData);
-		control_loop_simulink(&ctrlData);
+		//control_loop(&ctrlData);
+		control_loop_simulinkLoopTest(&ctrlData);
+		control_loop_simulinkLoopTestRx(&ctrlData);
+		//control_loop(&ctrlData);
 
 		legData.x = ctrlData.xRefLeft; //以左边的为基准
+		legData.y = ctrlData.yRefLeft;
+		if (ctrlData.yRefLeft >= -50) {
+			legData.y = -200;
+		}
 		fivebar_inverse_kinematics(&legData);
 		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
 		//		wheel_torque_cmd);
 
 		/*
-		uint8_t tmp[16];
-		memcpy(&tmp[0], &roll, 4);
-		memcpy(&tmp[4], &pitch, 4);
-		memcpy(&tmp[8], &yaw, 4);
-		tmp[12] = 0x00;
-		tmp[13] = 0x00;
-		tmp[14] = 0x80;
-		tmp[15] = 0x7f;
-		HAL_UART_Transmit(&huart1, &tmp[0], 16, 0xffff);
-		*/
+		 uint8_t tmp[16];
+		 memcpy(&tmp[0], &roll, 4);
+		 memcpy(&tmp[4], &pitch, 4);
+		 memcpy(&tmp[8], &yaw, 4);
+		 tmp[12] = 0x00;
+		 tmp[13] = 0x00;
+		 tmp[14] = 0x80;
+		 tmp[15] = 0x7f;
+		 HAL_UART_Transmit(&huart1, &tmp[0], 16, 0xffff);
+		 */
 
 		JM_PosAbsMode(idLF, legData.theta_f);
 		JM_PosAbsMode(idRF, legData.theta_f);

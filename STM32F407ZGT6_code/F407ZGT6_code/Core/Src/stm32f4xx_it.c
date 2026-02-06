@@ -23,6 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "../user/wheel_motor/wheel_motor.h"
+#include "../user/sys/compute.h"
 #include <stdio.h>
 /* USER CODE END Includes */
 
@@ -298,7 +299,13 @@ void SPI1_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
+	if (__HAL_UART_GET_FLAG(&huart1, UART_FLAG_IDLE) != RESET) {
+		__HAL_UART_CLEAR_IDLEFLAG(&huart1);  // 清标志
 
+		//printf("yes, we are in the irq of uart4\r\n");
+		uart1DMA(&huart1);
+
+	}
   /* USER CODE END USART1_IRQn 0 */
   HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */

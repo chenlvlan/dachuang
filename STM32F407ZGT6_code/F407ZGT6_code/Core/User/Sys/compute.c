@@ -7,11 +7,19 @@
 
 #include "compute.h"
 
+#define rxBufSize 32
+#define rxDataSize 32
+
 //#define DSP
 /* PID 实例（DSP库要求） */
 arm_pid_instance_f32 pid_pitch;     // 姿态 PID（输出力矩）
 arm_pid_instance_f32 pid_speed;
 //arm_pid_instance_f32 pid_x;
+
+static uint8_t rxBuf[rxBufSize];
+static uint8_t rxData[rxDataSize];
+static volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
+static volatile uint8_t frameReady = 0;   // 帧就绪标志
 
 float clampf(float x, float min, float max) {
 	if (x < min)
@@ -157,16 +165,85 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->xRefRight = ctrlData->xRefLeft;
 }
 
-void control_loop_simulink(controlData_t *ctrlData) {
-	uint8_t tmp[16];
-	memcpy(&tmp[0], &ctrlData->pitch, 4);
-	float speed = ((ctrlData->m0speed + ctrlData->m1speed) / 2.0f);
-	float torque = ((ctrlData->m0torque + ctrlData->m1torque) / 2.0f);
-	memcpy(&tmp[4], &speed, 4);
-	memcpy(&tmp[8], &torque, 4);
-	tmp[12] = 0x00;
-	tmp[13] = 0x00;
-	tmp[14] = 0x80;
-	tmp[15] = 0x7f;
-	HAL_UART_Transmit(&huart1, &tmp[0], 16, 0xffff);
+void control_loop_simulinkLoopTest(controlData_t *ctrlData) {
+	/* ========== 1. 姿态控制（快） ========== */
+	float pitch_err = 0.0f - ctrlData->pitch;
+	float torque_balance = arm_pid_f32(&pid_pitch, pitch_err);
+	/* ========== 3. 力矩合成 ========== */
+	float torque = torque_balance/* + torque_damp*/;
+	torque = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);
+	/* ========== 4. pitch 慢平均（给腿用） ========== */
+	float xRef = /*Kx * pitch+*/0.5f
+			* (((ctrlData->m0speed + ctrlData->m1speed) / 2.0f) - 0.0f);
+	xRef = clampf(xRef, -XREF_LIMIT, XREF_LIMIT);
+
+	uint8_t tmp[12];
+	memcpy(&tmp[0], &torque, 4);
+	memcpy(&tmp[4], &xRef, 4);
+	//memcpy(&tmp[8], &torque, 4);
+	tmp[8] = 0x00;
+	tmp[9] = 0x00;
+	tmp[10] = 0x80;
+	tmp[11] = 0x7f;
+	HAL_UART_Transmit(&huart1, &tmp[0], 12, 0xffff);
+}
+
+void control_loop_simulinkLoopTestRx(controlData_t *ctrlData) {
+	//仅当有新帧的时候更新传入的指针
+	if (frameReady == 1) {
+		frameReady = 0;
+
+		//printf("get Rx\r\n");
+		uint32_t torque = (uint32_t) rxData[3] << 24
+				| (uint32_t) rxData[2] << 16 | (uint32_t) rxData[1] << 8
+				| (uint32_t) rxData[0];
+		uint32_t xRef = (uint32_t) rxData[7] << 24 | (uint32_t) rxData[6] << 16
+				| (uint32_t) rxData[5] << 8 | (uint32_t) rxData[4];
+		uint32_t yRef = (uint32_t) rxData[11] << 24
+				| (uint32_t) rxData[10] << 16 | (uint32_t) rxData[9] << 8
+				| (uint32_t) rxData[8];
+		//printf("%02X%02X%02X%02X\r\n", rxData[3], rxData[2], rxData[1],
+		//		rxData[0]);
+		//printf("%l\r\n",m0v);
+		float torque_f, xRef_f, yRef_f;
+		memcpy(&torque_f, &torque, 4);
+		memcpy(&xRef_f, &xRef, 4);
+		memcpy(&yRef_f, &yRef, 4);
+		if (yRef_f >= -50) {
+			yRef_f = -200;
+		}
+		ctrlData->m0torque = torque_f;
+		ctrlData->m1torque = torque_f;
+		ctrlData->xRefLeft = xRef_f;
+		ctrlData->xRefRight = xRef_f;
+		ctrlData->yRefLeft = yRef_f;
+		ctrlData->yRefRight = yRef_f;
+	}
+}
+
+void uart1DMA(UART_HandleTypeDef *huart) {
+	if (huart->Instance == USART1) {
+		HAL_UART_DMAStop(&huart1);
+		//printf("cool we are going to deal the DMA\r\n");
+		uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+		//printf("NDTR=%d\r\n", __HAL_DMA_GET_COUNTER(huart1.hdmarx));
+		//HAL_UART_DMAStop(&huart1);
+		//printf("frame_len=%d\r\n",frame_len);
+		if (frame_len == 16) {
+			frameToDealLen = frame_len;
+			frameReady = 1;  // 标记帧就绪
+			memcpy(&rxData[0], &rxBuf[0], frame_len);
+		} else {
+			frameToDealLen = 0;
+			frameReady = 0;
+		}
+
+		HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
+
+	}
+}
+
+void control_comm_init() {
+	HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
+	__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
 }

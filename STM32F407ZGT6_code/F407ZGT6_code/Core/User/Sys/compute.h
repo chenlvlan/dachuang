@@ -10,7 +10,11 @@
 
 #include "main.h"
 #include <math.h>
+#include "dma.h"
+#include "usart.h"
+#include <string.h>
 #include <stdbool.h>
+#include <stdio.h>
 #include "arm_math.h"
 
 extern UART_HandleTypeDef huart1;
@@ -77,6 +81,8 @@ typedef struct {
 	//输出
 	float xRefLeft;
 	float xRefRight;
+	float yRefLeft;
+	float yRefRight;
 } controlData_t;
 
 typedef enum {
@@ -94,6 +100,10 @@ void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 
 void control_init();
 
+void control_comm_init();
+void uart1DMA(UART_HandleTypeDef *huart);
 void control_loop(controlData_t *ctrlData);
-void control_loop_simulink(controlData_t *ctrlData);
+void control_loop_simulinkLoopTest(controlData_t *ctrlData);
+
+void control_loop_simulinkLoopTestRx(controlData_t *ctrlData);
 #endif /* USER_SYS_COMPUTE_H_ */

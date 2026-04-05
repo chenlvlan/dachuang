@@ -26,6 +26,18 @@ extern motorDataRead_t JMDataRead[4];
 //extern CAN_HandleTypeDef hcan2;
 extern TIM_HandleTypeDef htim3;
 extern UART_HandleTypeDef huart1;
+extern controlData_t ctrlData;
+
+// Remote control / API variables (set from CLI, tests or RC input)
+extern volatile float remote_forward_speed; // m/s, + forward
+extern volatile float remote_turn_angle;    // rad, + right
+extern volatile float remote_leg_delta;     // mm, leg height offset
+
+// Remote control API (implement in app.c)
+void set_remote_forward_speed(float forward_mps);
+void set_remote_turn_angle(float turn_rad);
+void set_remote_leg_delta(float leg_delta_mm);
+void emergency_stop_motors(void);
 
 void appLoop();
 void appSetup();

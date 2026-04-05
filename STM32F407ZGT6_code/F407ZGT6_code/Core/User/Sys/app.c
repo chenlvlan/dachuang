@@ -6,9 +6,10 @@
  */
 
 #include "app.h"
+#include <math.h>
 //#include "arm_math.h"
 
-bool doMotionCtrlCycle = 0;
+volatile bool doMotionCtrlCycle = 0;
 legData_t legData = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
 		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
 		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -190.0f };
@@ -17,7 +18,53 @@ wheelMotorData_t wheelMotorData = { .mode = WM_Torque };
 float quat_nom[4] = { 0 };
 float roll, yaw, pitch;
 
+volatile uint8_t emergency_request = 0;
+volatile float remote_forward_speed = 0.0f;  // m/s
+volatile float remote_turn_angle = 0.0f;     // rad
+volatile float remote_leg_delta = 0.0f;      // mm (对 yRef 的偏置)
+
+//测试代码
+//set_remote_forward_speed(0.4f); // 前进 0.4 m/s
+//set_remote_turn_angle(0.3f);    // 右转 0.3 rad
+//set_remote_leg_delta(-20.0f);   // 把腿端抬高 20 mm（示例方向）
+
 controlData_t ctrlData;
+
+static inline float clampf_local(float x, float min, float max) {
+    return clampf(x, min, max);
+}
+
+// setter 实现（尽量短并做并发保护）
+void set_remote_forward_speed(float forward_mps) {
+    __disable_irq();
+    remote_forward_speed = clampf_local(forward_mps, -1.0f, 1.0f); // 限幅如需改动
+    __enable_irq();
+}
+
+void set_remote_turn_angle(float turn_rad) {
+    __disable_irq();
+    const float TURN_LIMIT = 0.785398f; // +/-45deg
+    remote_turn_angle = clampf_local(turn_rad, -TURN_LIMIT, TURN_LIMIT);
+    __enable_irq();
+}
+
+void set_remote_leg_delta(float leg_delta_mm) {
+    __disable_irq();
+    remote_leg_delta = clampf_local(leg_delta_mm, -100.0f, 100.0f); // mm limit
+    __enable_irq();
+}
+
+void emergency_stop_motors(void) {
+    __disable_irq();
+    remote_forward_speed = 0.0f;
+    remote_turn_angle = 0.0f;
+    ctrlData.m0torque = 0.0f;
+    ctrlData.m1torque = 0.0f;
+    wheelMotorData.m0target = 0.0f;
+    wheelMotorData.m1target = 0.0f;
+    emergency_request = 1; // 标志，主循环处理真实发送
+    __enable_irq();
+}
 
 /* 状态量（全局共享） */
 //float pitch_rate;   // 可选，用于D项
@@ -36,7 +83,7 @@ void appSetup() {
 	WM_SendRestart(); //复位驱动器
 	HAL_Delay(1000); //这个延时必须加，不然在上电（冷启动，不是按reset那种）后MPU6500会初始化失败
 	mpu6500_SPIInit();
-	//cli_init();
+	cli_init();
 
 	printf("CLI ready, type 'help'\r\n");
 	//HAL_Delay(150); //等待供电稳定
@@ -58,7 +105,7 @@ void appSetup() {
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 	control_init();
-	control_comm_init();
+	//control_comm_init();
 	HAL_Delay(2000);
 }
 
@@ -67,25 +114,25 @@ void appLoop() {
 		doMotionCtrlCycle = 0;
 		motionCtrlCycle();
 	}
+	if (emergency_request) {
+	        emergency_request = 0;
+	        WM_Send(&wheelMotorData); // 立即把已置零的目标下发到驱动
+	    }
 	if (mpu6500_isReady()) {
 		mpu6500_DMPGet(&quat_nom[0]);
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
-				&pitch, &yaw);
+			&pitch, &yaw);
+
 		//printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
 		ctrlData.roll = roll;
 		ctrlData.pitch = pitch;
 		ctrlData.yaw = yaw;
 
-		//control_loop(&ctrlData);
-		control_loop_simulinkLoopTest(&ctrlData);
-		control_loop_simulinkLoopTestRx(&ctrlData);
-		//control_loop(&ctrlData);
+		control_loop(&ctrlData);
+		apply_remote_command(&ctrlData);//调用遥控控制
 
-		legData.x = ctrlData.xRefLeft; //以左边的为基准
+		legData.x = ctrlData.xRefLeft; //以左边为基准
 		legData.y = ctrlData.yRefLeft;
-		if (ctrlData.yRefLeft >= -50) {
-			legData.y = -200;
-		}
 		fivebar_inverse_kinematics(&legData);
 		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
 		//		wheel_torque_cmd);
@@ -127,10 +174,38 @@ void appLoop() {
 }
 
 void motionCtrlCycle() {
-//运动控制环
-
+    // 运动控制环保持空闲，遥控控制以偏置方式融入平衡控制
 }
 
+void apply_remote_command(controlData_t *ctrlData) {
+    // remote_forward_speed 已为 m/s； remote_turn_angle 已为 rad
+    const float K_FORWARD = 0.05f;  // 速度 -> 扭矩系数（保留或重新标定）
+    const float K_TURN = 0.02f;     // 转向 -> 扭矩差分系数
+
+    // 读取（本函数在同一线程 context 中被调用，读写 remote_* 已用 volatile）
+    float forward = remote_forward_speed;
+    float turn = remote_turn_angle;
+    float leg_delta = remote_leg_delta;
+
+    // 映射到扭矩偏置
+    float forward_bias = forward * K_FORWARD;
+    float turn_bias = turn * K_TURN;
+
+    // 合成扭矩（保留原有平衡扭矩 ctrlData->m?torque）
+    ctrlData->m0torque = clampf(ctrlData->m0torque + forward_bias + turn_bias,
+                                -TORQUE_LIMIT, TORQUE_LIMIT);
+    ctrlData->m1torque = clampf(ctrlData->m1torque + forward_bias - turn_bias,
+                                -TORQUE_LIMIT, TORQUE_LIMIT);
+
+    // 把腿高度偏置融合到腿端参考值，注意坐标方向（示例：yRef 为负数向下）
+    // 假设 STAND_Y_REF 是 mm 或已用同一单位（你的项目里 STAND_Y_REF 应与 legData.y 单位一致）
+    float newYLeft = STAND_Y_REF + leg_delta;
+    float newYRight = STAND_Y_REF + leg_delta;
+    // 限幅以防超出机械范围
+    // ctrlData 的 yRefLeft/yRefRight 对应 compute.c 中使用的 xRef/yRef
+    ctrlData->yRefLeft = clampf(newYLeft, -500.0f, 0.0f);  // 例子：-500..0 mm，请按实际改
+    ctrlData->yRefRight = ctrlData->yRefLeft;
+}
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM3) {
 		// ---- 这里执行你的 20ms 控制环 ----

@@ -101,6 +101,13 @@ void fivebar_inverse_kinematics(legData_t *leg_data) {
 	leg_data->status = IK_OK;
 }
 
+/*
+ * quat2euler
+ * 输入四元数顺序： (w, x, y, z)
+ * 输出：roll, pitch, yaw — 注意：函数返回的角度单位为度（degrees），
+ * 因为在结尾处乘以 57.29578f。若希望以弧度处理，则删除末尾的系数
+ * 并相应调整 PID 增益的单位。
+ */
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 		float *yaw) {
 	/* -------- Roll (X axis) -------- */
@@ -149,20 +156,16 @@ void control_loop(controlData_t *ctrlData) {
 	float pitch_err = 0.0f - ctrlData->pitch;
 	float torque_balance = arm_pid_f32(&pid_pitch, pitch_err);
 
-	/* ========== 3. 力矩合成 ========== */
-	float torque = torque_balance/* + torque_damp*/;
-	ctrlData->m0torque = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);
-	ctrlData->m1torque = ctrlData->m0torque;
+	/* ========== 2. 力矩输出 ========== */
+	float torque = clampf(torque_balance, -TORQUE_LIMIT, TORQUE_LIMIT);
+	ctrlData->m0torque = torque;
+	ctrlData->m1torque = torque;
 
-	/* ========== 4. pitch 慢平均（给腿用） ========== */
-	//pitch_avg += pitch_lpf_alpha * (pitch - pitch_avg);//低通滤波
-	float Kx = 2.0f;  // m / rad / s（非常小）
-	/* pitch_avg ≠ 0 说明结构不平衡 */
-	//x_ref += Kx * pitch_avg;
-	ctrlData->xRefLeft = /*Kx * pitch+*/0.5f
-			* (((ctrlData->m0speed + ctrlData->m1speed) / 2.0f) - 0.0f);
-	ctrlData->xRefLeft = clampf(ctrlData->xRefLeft, -XREF_LIMIT, XREF_LIMIT);
-	ctrlData->xRefRight = ctrlData->xRefLeft;
+	/* ========== 3. 腿端保持稳定支撑 ========== */
+	ctrlData->xRefLeft = 0.0f;
+	ctrlData->xRefRight = 0.0f;
+	ctrlData->yRefLeft = STAND_Y_REF;
+	ctrlData->yRefRight = STAND_Y_REF;
 }
 
 void control_loop_simulinkLoopTest(controlData_t *ctrlData) {

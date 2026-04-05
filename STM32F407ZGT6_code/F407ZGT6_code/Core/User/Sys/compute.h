@@ -34,6 +34,7 @@ extern UART_HandleTypeDef huart1;
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
 #define XREF_LIMIT     20.0f   // ±20mm
+#define STAND_Y_REF   -200.0f   // 稳定站立高度
 
 /*
  typedef struct {
@@ -95,6 +96,11 @@ void fivebar_inverse_kinematics(legData_t *leg_data);
 
 float clampf(float x, float min, float max);
 
+/* quat2euler: 将四元数转换为欧拉角。
+ * 输入顺序： (w, x, y, z)
+ * 输出到 `roll, pitch, yaw`。注意：实现中返回的角度单位为度（degrees）。
+ * 若需要弧度，请修改实现并同步 PID 增益单位。
+ */
 void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 		float *yaw);
 

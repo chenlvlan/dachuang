@@ -1,0 +1,11 @@
+../Core/user/sys/cli.c:38:6:cli_init	8	static
+../Core/user/sys/cli.c:46:6:cli_poll	8	static
+../Core/user/sys/cli.c:54:6:cli_uart_rx_char	16	static
+../Core/user/sys/cli.c:74:6:HAL_UART_RxCpltCallback	16	static
+../Core/user/sys/cli.c:83:12:cli_tokenize	32	static
+../Core/user/sys/cli.c:104:13:cli_process	56	static
+../Core/user/sys/cli.c:129:13:cli_cmd_help	16	static
+../Core/user/sys/cli.c:145:13:cli_cmd_set	24	static
+../Core/user/sys/cli.c:165:13:cli_cmd_get	16	static
+../Core/user/sys/cli.c:181:13:cli_cmd_ik	72	static
+../Core/user/sys/cli.c:201:13:cli_cmd_pid	48	static

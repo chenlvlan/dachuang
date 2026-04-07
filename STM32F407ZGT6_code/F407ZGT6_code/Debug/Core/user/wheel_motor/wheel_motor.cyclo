@@ -1,0 +1,8 @@
+../Core/user/wheel_motor/wheel_motor.c:22:6:WM_CommInit	1
+../Core/user/wheel_motor/wheel_motor.c:33:6:WM_Send	1
+../Core/user/wheel_motor/wheel_motor.c:40:6:WM_SendDisable	1
+../Core/user/wheel_motor/wheel_motor.c:48:6:WM_SendVelocity	1
+../Core/user/wheel_motor/wheel_motor.c:56:6:WM_SendTorque	1
+../Core/user/wheel_motor/wheel_motor.c:64:6:WM_SendRestart	1
+../Core/user/wheel_motor/wheel_motor.c:72:6:WM_Receive	3
+../Core/user/wheel_motor/wheel_motor.c:98:6:uart4DMA	3

@@ -1,0 +1,17 @@
+##############################
+# STM32CubeIDE / CubeMX
+##############################
+
+# Build output directories
+Debug/
+Release/
+build/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.lst
+*.su
+*.cyclo

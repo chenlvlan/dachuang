@@ -77,8 +77,8 @@ void appLoop() {
 		ctrlData.yaw = yaw;
 
 		//control_loop(&ctrlData);
-		control_loop_simulinkLoopTest(&ctrlData);
-		control_loop_simulinkLoopTestRx(&ctrlData);
+		//control_loop_simulinkLoopTest(&ctrlData);
+		//control_loop_simulinkLoopTestRx(&ctrlData);
 		//control_loop(&ctrlData);
 
 		legData.x = ctrlData.xRefLeft; //以左边的为基准

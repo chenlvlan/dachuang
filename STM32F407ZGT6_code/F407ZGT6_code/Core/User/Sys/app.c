@@ -11,7 +11,7 @@
 bool doMotionCtrlCycle = 0;
 legData_t legData = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
 		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
-		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -190.0f };
+		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -130.0f };
 wheelMotorData_t wheelMotorData = { .mode = WM_Torque };
 
 float quat_nom[4] = { 0 };

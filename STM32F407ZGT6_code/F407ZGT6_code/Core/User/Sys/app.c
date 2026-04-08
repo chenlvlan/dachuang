@@ -76,7 +76,7 @@ void appLoop() {
 		ctrlData.pitch = pitch;
 		ctrlData.yaw = yaw;
 
-		//control_loop(&ctrlData);
+		control_loop(&ctrlData);
 		//control_loop_simulinkLoopTest(&ctrlData);
 		//control_loop_simulinkLoopTestRx(&ctrlData);
 		//control_loop(&ctrlData);

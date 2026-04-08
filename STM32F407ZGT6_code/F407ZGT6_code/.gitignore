@@ -6,8 +6,8 @@
 Debug/
 Release/
 build/
-*.o
-*.d
+**/*.o
+**/*.d
 *.elf
 *.bin
 *.hex

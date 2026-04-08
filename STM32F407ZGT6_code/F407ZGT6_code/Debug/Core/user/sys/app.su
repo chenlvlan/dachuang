@@ -1,5 +1,0 @@
-../Core/user/sys/app.c:28:6:HVHP	16	static
-../Core/user/sys/app.c:32:6:appSetup	8	static
-../Core/user/sys/app.c:65:6:appLoop	8	static
-../Core/user/sys/app.c:129:6:motionCtrlCycle	4	static
-../Core/user/sys/app.c:134:6:HAL_TIM_PeriodElapsedCallback	16	static

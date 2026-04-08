@@ -1,5 +1,0 @@
-../Core/user/mpu6500/mpu6500.c:18:5:mpu6500_SPIInit	16	static
-../Core/user/mpu6500/mpu6500.c:52:6:HAL_GPIO_EXTI_Callback	16	static
-../Core/user/mpu6500/mpu6500.c:64:6:mpu_data_ready	4	static
-../Core/user/mpu6500/mpu6500.c:68:6:mpu6500_DMPGet	72	static
-../Core/user/mpu6500/mpu6500.c:109:5:mpu6500_isReady	4	static

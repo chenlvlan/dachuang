@@ -36,6 +36,9 @@ extern UART_HandleTypeDef huart1;
 #define XREF_LIMIT     20.0f   // ±20mm
 #define STAND_Y_REF   -200.0f   // 稳定站立高度
 
+
+#define PITCH_LIMIT        20.0f   // 俯仰角超限±20度 → 直接停机（核心保护）
+#define PITCH_REF_LIMIT    8.0f    // 速度环输出期望俯仰角限幅±8度（防止失控）
 /*
  typedef struct {
  float L1;   // 前大腿长度

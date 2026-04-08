@@ -30,6 +30,8 @@ volatile float remote_leg_delta = 0.0f;      // mm (对 yRef 的偏置)
 
 controlData_t ctrlData;
 
+void apply_remote_command(controlData_t *ctrlData);
+
 static inline float clampf_local(float x, float min, float max) {
     return clampf(x, min, max);
 }
@@ -110,10 +112,6 @@ void appSetup() {
 }
 
 void appLoop() {
-	if (doMotionCtrlCycle == 1) {
-		doMotionCtrlCycle = 0;
-		motionCtrlCycle();
-	}
 	if (emergency_request) {
 	        emergency_request = 0;
 	        WM_Send(&wheelMotorData); // 立即把已置零的目标下发到驱动
@@ -129,7 +127,7 @@ void appLoop() {
 		ctrlData.yaw = yaw;
 
 		control_loop(&ctrlData);
-		apply_remote_command(&ctrlData);//调用遥控控制
+		//apply_remote_command(&ctrlData);//调用遥控控制
 
 		legData.x = ctrlData.xRefLeft; //以左边为基准
 		legData.y = ctrlData.yRefLeft;
@@ -173,9 +171,6 @@ void appLoop() {
 	//cli_poll();
 }
 
-void motionCtrlCycle() {
-    // 运动控制环保持空闲，遥控控制以偏置方式融入平衡控制
-}
 
 void apply_remote_command(controlData_t *ctrlData) {
     // remote_forward_speed 已为 m/s； remote_turn_angle 已为 rad

@@ -6,6 +6,7 @@
  */
 
 #include "compute.h"
+#include "app.h"
 
 #define rxBufSize 256
 #define rxDataSize 256
@@ -20,6 +21,7 @@ static uint8_t rxBuf[rxBufSize];
 static uint8_t rxData[rxDataSize];
 static volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
 static volatile uint8_t frameReady = 0;   // 帧就绪标志
+
 
 float clampf(float x, float min, float max) {
 	if (x < min)
@@ -152,19 +154,38 @@ void control_init() {
 }
 
 void control_loop(controlData_t *ctrlData) {
-	/* ========== 1. 姿态控制（快） ========== */
-	float pitch_err = 0.0f - ctrlData->pitch;
-	float torque_balance = arm_pid_f32(&pid_pitch, pitch_err);
+	// 1. 安全保护：俯仰角超限，直接停机（防止摔倒炸机）
+	if(fabs(ctrlData->pitch) > PITCH_LIMIT){
+		ctrlData->m0torque = 0.0f;
+		ctrlData->m1torque = 0.0f;
+		arm_pid_init_f32(&pid_pitch, 1);  // 重置PID积分
+		arm_pid_init_f32(&pid_speed, 1);
+		return;
+	}
 
-	/* ========== 2. 力矩输出 ========== */
-	float torque = clampf(torque_balance, -TORQUE_LIMIT, TORQUE_LIMIT);
+	// 2. 计算车轮平均速度（两轮速度取平均）
+	float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2.0f;
+
+	// 3. 外环：速度PID → 输出「期望俯仰角pitch_ref」
+	// 目标速度=0（静止站立），误差=0 - 当前平均速度
+	float speed_err = 0.0f - speed_avg;
+	float pitch_ref = arm_pid_f32(&pid_speed, speed_err);  // 速度环输出期望俯仰角
+	pitch_ref = clampf(pitch_ref, -PITCH_REF_LIMIT, PITCH_REF_LIMIT);  // 限幅±8度
+
+	// 4. 内环：姿态PID → 输出电机扭矩
+	// 误差=期望俯仰角 - 实际俯仰角
+	float pitch_err = pitch_ref - ctrlData->pitch;
+	float torque = arm_pid_f32(&pid_pitch, pitch_err);
+	torque = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);  // 扭矩限幅
+
+	// 5. 输出扭矩到左右电机（两轮同扭矩，保证直线站立）
 	ctrlData->m0torque = torque;
 	ctrlData->m1torque = torque;
 
-	/* ========== 3. 腿端保持稳定支撑 ========== */
-	ctrlData->xRefLeft = 0.0f;
+	// 6. 腿端固定坐标（保证机械腿稳定支撑，不晃动）
+	ctrlData->xRefLeft = 0.0f;    // 轮子前后位置固定0
 	ctrlData->xRefRight = 0.0f;
-	ctrlData->yRefLeft = STAND_Y_REF;
+	ctrlData->yRefLeft = STAND_Y_REF;   // 腿高固定为站立高度
 	ctrlData->yRefRight = STAND_Y_REF;
 }
 

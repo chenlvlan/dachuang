@@ -156,6 +156,7 @@ float integral_v_L;       // 速度环积分项 (m)
 float integral_v_R;
 //float last_timestamp;   // 上次调用时间戳 (ms)，用于计算dt（如果使用时间戳方式）
 float last_theta;
+extern volatile float remote_forward_speed;
 
 void control_loop(controlData_t *ctrlData) {
 	// 1. 安全保护：俯仰角超限，直接停机
@@ -176,8 +177,10 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->yRefRight = STAND_Y_REF;
 	float wheelRadius = 0.025f;
 	//float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
-	float v_des_L = 0;
-	float v_des_R = 0;
+	//float v_des_L = 0;
+	//float v_des_R = 0;
+	float v_des_L = remote_forward_speed;
+	float v_des_R = remote_forward_speed;
 	float theta_des = 0.0f;
 	// 1. 轮子角速度 -> 线速度
 	float v_actual_L = ctrlData->m0speed * wheelRadius;   // m/s

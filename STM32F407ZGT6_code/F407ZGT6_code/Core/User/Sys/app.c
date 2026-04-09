@@ -121,7 +121,7 @@ void appLoop() {
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
 			&pitch, &yaw);
 
-		set_remote_forward_speed(0.5f);//调试代码
+		set_remote_forward_speed(0.1f);//调试代码
 		//set_remote_leg_delta(-10.0f);   // 把腿端抬高 10 mm（示例方向）
 		//set_remote_turn_angle(0.1f);    // 右转 0.3 rad
 
@@ -188,23 +188,21 @@ void appLoop() {
 
 void apply_remote_command(controlData_t *ctrlData) {
     // remote_forward_speed 已为 m/s； remote_turn_angle 已为 rad
-    const float K_FORWARD = 0.08f;  // 速度 -> 扭矩系数（保留或重新标定）
     const float K_TURN = 0.1f;     // 转向 -> 扭矩差分系数
     const float K_LEG_TURN = 0.5f;
 
     // 读取（本函数在同一线程 context 中被调用，读写 remote_* 已用 volatile）
-    float forward = remote_forward_speed;
     float turn = remote_turn_angle;
     float leg_delta = remote_leg_delta;
 
     // 映射到扭矩偏置
-    float forward_bias = forward * K_FORWARD;
+
     float turn_bias = turn * K_TURN;
 
     // 合成扭矩（保留原有平衡扭矩 ctrlData->m?torque）
-    ctrlData->m0torque = clampf(ctrlData->m0torque + forward_bias + turn_bias,
+    ctrlData->m0torque = clampf(ctrlData->m0torque + turn_bias,
                                     -TORQUE_LIMIT, TORQUE_LIMIT);
-    ctrlData->m1torque = clampf(ctrlData->m1torque + forward_bias - turn_bias,
+    ctrlData->m1torque = clampf(ctrlData->m1torque  - turn_bias,
                                     -TORQUE_LIMIT, TORQUE_LIMIT);
 
 

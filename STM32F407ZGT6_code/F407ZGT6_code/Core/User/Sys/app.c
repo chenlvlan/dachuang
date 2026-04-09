@@ -27,10 +27,6 @@ volatile float remote_forward_speed = 0.0f;  // m/s
 volatile float remote_turn_angle = 0.0f;     // rad
 volatile float remote_leg_delta = 0.0f;      // mm (对 yRef 的偏置)
 
-//测试代码
-//set_remote_forward_speed(0.2f); // 前进 0.2 m/s
-//set_remote_turn_angle(0.3f);    // 右转 0.3 rad
-//set_remote_leg_delta(-10.0f);   // 把腿端抬高 10 mm（示例方向）
 
 controlData_t ctrlData;
 
@@ -125,6 +121,11 @@ void appLoop() {
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
 			&pitch, &yaw);
 
+		set_remote_forward_speed(0.5f);//调试代码
+		//set_remote_leg_delta(-10.0f);   // 把腿端抬高 10 mm（示例方向）
+		//set_remote_turn_angle(0.1f);    // 右转 0.3 rad
+
+
 		//printf("%.5f, %.5f, %.5f, ", roll, pitch, yaw);
 		ctrlData.roll = roll;
 		ctrlData.pitch = pitch;
@@ -132,6 +133,7 @@ void appLoop() {
 
 		control_loop(&ctrlData);
 		apply_remote_command(&ctrlData);//调用遥控控制
+
 
 		// 1. 左腿赋值 + 逆解
 		legData_L.x = ctrlData.xRefLeft;
@@ -186,8 +188,8 @@ void appLoop() {
 
 void apply_remote_command(controlData_t *ctrlData) {
     // remote_forward_speed 已为 m/s； remote_turn_angle 已为 rad
-    const float K_FORWARD = 0.05f;  // 速度 -> 扭矩系数（保留或重新标定）
-    const float K_TURN = 0.02f;     // 转向 -> 扭矩差分系数
+    const float K_FORWARD = 0.08f;  // 速度 -> 扭矩系数（保留或重新标定）
+    const float K_TURN = 0.1f;     // 转向 -> 扭矩差分系数
     const float K_LEG_TURN = 0.5f;
 
     // 读取（本函数在同一线程 context 中被调用，读写 remote_* 已用 volatile）
@@ -201,9 +203,10 @@ void apply_remote_command(controlData_t *ctrlData) {
 
     // 合成扭矩（保留原有平衡扭矩 ctrlData->m?torque）
     ctrlData->m0torque = clampf(ctrlData->m0torque + forward_bias + turn_bias,
-                                -TORQUE_LIMIT, TORQUE_LIMIT);
+                                    -TORQUE_LIMIT, TORQUE_LIMIT);
     ctrlData->m1torque = clampf(ctrlData->m1torque + forward_bias - turn_bias,
-                                -TORQUE_LIMIT, TORQUE_LIMIT);
+                                    -TORQUE_LIMIT, TORQUE_LIMIT);
+
 
     ctrlData->xRefLeft  +=  turn * K_LEG_TURN;
     ctrlData->xRefRight -=  turn * K_LEG_TURN;
@@ -212,7 +215,9 @@ void apply_remote_command(controlData_t *ctrlData) {
     // 把腿高度偏置融合到腿端参考值，注意坐标方向（示例：yRef 为负数向下）
     // 假设 STAND_Y_REF 是 mm 或已用同一单位（你的项目里 STAND_Y_REF 应与 legData.y 单位一致）
     float newYLeft = STAND_Y_REF + leg_delta;
-    float newYRight = STAND_Y_REF + leg_delta;
+    //float newYRight = STAND_Y_REF + leg_delta;
+
+
     // 限幅以防超出机械范围
     // ctrlData 的 yRefLeft/yRefRight 对应 compute.c 中使用的 xRef/yRef
     ctrlData->yRefLeft = clampf(newYLeft, -500.0f, 0.0f);  // 例子：-500..0 mm，请按实际改

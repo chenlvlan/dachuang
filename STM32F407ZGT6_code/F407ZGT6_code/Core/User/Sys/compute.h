@@ -41,16 +41,16 @@ extern UART_HandleTypeDef huart1;
  */
 #define PITCH_KP   0.02f
 #define PITCH_KI   0.000000005f/CTRL_DT
-#define PITCH_KD   0.001f/CTRL_DT
+#define PITCH_KD   0.002f/CTRL_DT
 
-#define SPEED_KP 0.05f
+#define SPEED_KP 0.02f
 #define SPEED_KI 0.0f/CTRL_DT
 #define SPEED_KD 0.0f/CTRL_DT
 
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
 #define XREF_LIMIT     20.0f   // ±20mm
-#define STAND_Y_REF   -180.0f   // 稳定站立高度
+#define STAND_Y_REF   -140.0f   // 稳定站立高度
 
 
 #define PITCH_LIMIT        20.0f   // 俯仰角超限±20度 → 直接停机（核心保护）

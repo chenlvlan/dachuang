@@ -176,8 +176,8 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->yRefRight = STAND_Y_REF;
 	float wheelRadius = 0.025f;
 	//float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
-	float v_des_L = 0.1;
-	float v_des_R = 0.1;
+	float v_des_L = 0;
+	float v_des_R = 0;
 	float theta_des = 0.0f;
 	// 1. 轮子角速度 -> 线速度
 	float v_actual_L = ctrlData->m0speed * wheelRadius;   // m/s
@@ -249,7 +249,7 @@ void control_loop(controlData_t *ctrlData) {
 	//d_set *= 1000;
 	ctrlData->xRefLeft = d_set_L * 1000;
 	ctrlData->xRefRight = d_set_R * 1000;
-	printf("%.2f  %.4f\r\n", ctrlData->yRefLeft, ctrlData->xRefLeft);
+	printf("%.2f  %.4f\r\n", ctrlData->pitch, d_offset_L*1000);
 }
 
 void control_loop_simulinkLoopTest(controlData_t *ctrlData) {

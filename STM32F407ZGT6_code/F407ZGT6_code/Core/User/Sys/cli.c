@@ -185,18 +185,18 @@ static void cli_cmd_ik(int argc, char *argv[]) {
 		return;
 	}
 
-	legData.x = atof(argv[1]);
-	legData.y = atof(argv[2]);
+	legData_L.x = atof(argv[1]);
+	legData_L.y = atof(argv[2]);
 //printf("begin calc\r\n");
-	fivebar_inverse_kinematics(&legData);
+	fivebar_inverse_kinematics(&legData_L);
 // 这里后面直接接你的 fivebar_inverse_kinematics
 	printf("x=%.3f, y=%.3f, theta_f=%.2f Deg, theta_r=%.2f Deg, state=%d\r\n",
-			legData.x, legData.y, legData.theta_f * 57.29578f,
-			legData.theta_r * 57.29578f, legData.status);
-	JM_PosAbsMode(idLF, legData.theta_f);
-	JM_PosAbsMode(idRF, legData.theta_f);
-	JM_PosAbsMode(idLR, legData.theta_r);
-	JM_PosAbsMode(idRR, legData.theta_r);
+			legData_L.x, legData_L.y, legData_L.theta_f * 57.29578f,
+			legData_L.theta_r * 57.29578f, legData_L.status);
+	JM_PosAbsMode(idLF, legData_L.theta_f);
+	JM_PosAbsMode(idRF, legData_R.theta_f);
+	JM_PosAbsMode(idLR, legData_L.theta_r);
+	JM_PosAbsMode(idRR, legData_R.theta_r);
 }
 
 static void cli_cmd_pid(int argc, char *argv[]) {

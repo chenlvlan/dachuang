@@ -152,8 +152,9 @@ void control_init() {
 	//wheel_torque_cmd = 0.0f;
 }
 
-float integral_v;       // 速度环积分项 (m)
-float last_timestamp;   // 上次调用时间戳 (ms)，用于计算dt（如果使用时间戳方式）
+float integral_v_L;       // 速度环积分项 (m)
+float integral_v_R;
+//float last_timestamp;   // 上次调用时间戳 (ms)，用于计算dt（如果使用时间戳方式）
 float last_theta;
 
 void control_loop(controlData_t *ctrlData) {
@@ -168,79 +169,68 @@ void control_loop(controlData_t *ctrlData) {
 		arm_pid_init_f32(&pid_x, 1);
 		return;
 	}
-	/*
 
-	 // 2. 计算车轮平均速度
-	 float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2.0f;
-
-	 // 第一环：速度PID（防漂移）→ 输出期望俯仰角
-	 float speed_err = 0.0f - speed_avg;
-	 float pitch_ref = arm_pid_f32(&pid_speed, speed_err);
-	 pitch_ref = clampf(pitch_ref, -PITCH_REF_LIMIT, PITCH_REF_LIMIT);
-
-	 //第二环：姿态PID（直立）→ 输出期望X坐标（腿前后动）
-	 float pitch_err = pitch_ref - ctrlData->pitch;
-	 float x_ref = arm_pid_f32(&pid_pitch, pitch_err);  // 姿态环输出腿X目标
-	 x_ref = clampf(x_ref, -XREF_LIMIT, XREF_LIMIT);    // 限幅±20mm
-
-	 // 第三环：X坐标PID（跟踪腿位置）→ 输出电机扭矩
-	 float x_err = x_ref - 0.0f;  // 目标X=0，保持居中
-	 float torque = arm_pid_f32(&pid_x, x_err);
-	 torque = clampf(torque, -TORQUE_LIMIT, TORQUE_LIMIT);
-
-	 // 3. 输出控制量
-	 ctrlData->m0torque = torque;
-	 ctrlData->m1torque = torque;
-
-	 // 4. 腿端坐标（X动态动=二阶平衡，Y固定=站立高度）
-	 ctrlData->xRefLeft = x_ref;     // 【关键】X不再固定！动态前后动
-	 ctrlData->xRefRight = x_ref;
-	 ctrlData->yRefLeft = STAND_Y_REF;
-	 ctrlData->yRefRight = STAND_Y_REF;
-	 */
-
-	//下面是zyf临时验证的
 	// 参数检查
 	//if (handle == NULL || tau_out == NULL || d_set_out == NULL) return;
 	ctrlData->yRefLeft = STAND_Y_REF;
 	ctrlData->yRefRight = STAND_Y_REF;
-	float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
-	float v_des = 0;
-	float theta_des= 5.0f;
+	float wheelRadius = 0.025f;
+	//float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
+	float v_des_L = 0.1;
+	float v_des_R = 0.1;
+	float theta_des = 0.0f;
 	// 1. 轮子角速度 -> 线速度
-	float v_actual = speed_avg * 0.025;   // m/s
+	float v_actual_L = ctrlData->m0speed * wheelRadius;   // m/s
+	float v_actual_R = ctrlData->m1speed * wheelRadius;   // m/s
 
 	// 2. 速度环（PI控制器 -> 期望轮子位移 d_cmd）
-	float err_v = v_des - v_actual;
+	float err_v_L = v_des_L - v_actual_L;
+	float err_v_R = v_des_R - v_actual_R;
 	// 积分累加（带抗饱和预限幅）
-	integral_v += SPEED_KI * err_v * CTRL_DT;
+	integral_v_L += SPEED_KI * err_v_L * CTRL_DT;
+	integral_v_R += SPEED_KI * err_v_R * CTRL_DT;
 	// 积分项限幅（防止过大导致位移饱和）
 	float INTEGRAL_LIMIT = 0.02f;
-	if (integral_v > INTEGRAL_LIMIT)
-		integral_v = INTEGRAL_LIMIT;
-	if (integral_v < -INTEGRAL_LIMIT)
-		integral_v = -INTEGRAL_LIMIT;
+	integral_v_L = clampf(integral_v_L, -INTEGRAL_LIMIT, INTEGRAL_LIMIT);
+	integral_v_R = clampf(integral_v_R, -INTEGRAL_LIMIT, INTEGRAL_LIMIT);
+	/*
+	 if (integral_v > INTEGRAL_LIMIT)
+	 integral_v = INTEGRAL_LIMIT;
+	 if (integral_v < -INTEGRAL_LIMIT)
+	 integral_v = -INTEGRAL_LIMIT;
+	 */
 
-	float d_cmd = SPEED_KP * err_v + integral_v;
+	float d_cmd_L = SPEED_KP * err_v_L + integral_v_L;
+	float d_cmd_R = SPEED_KP * err_v_R + integral_v_R;
 	// 限制 d_cmd 范围，为期望姿态偏置留出空间（预留±0.01m）
 	float xref_lim_SI = XREF_LIMIT / 1000;
-	if (d_cmd > (xref_lim_SI))
-		d_cmd = xref_lim_SI;
-	if (d_cmd < (-xref_lim_SI))
-		d_cmd = -xref_lim_SI;
+	d_cmd_L = clampf(d_cmd_L, -xref_lim_SI, xref_lim_SI);
+	d_cmd_R = clampf(d_cmd_R, -xref_lim_SI, xref_lim_SI);
+	/*
+	 if (d_cmd > (xref_lim_SI))
+	 d_cmd = xref_lim_SI;
+	 if (d_cmd < (-xref_lim_SI))
+	 d_cmd = -xref_lim_SI;
+	 */
 	//printf("d_cmd = %.2f, \r\n", d_cmd);
-
 	// 3. 期望姿态对应的位移偏置 d_offset = -COM_ARM_LEN * sin(theta_des)
 	//float d_offset = -COM_ARM_LEN * sinf(theta_des);
-	float d_offset = (ctrlData->yRefLeft / 1000
+	float d_offset_L = (ctrlData->yRefLeft / 1000
+			* sinf((ctrlData->pitch / 180) * M_PI));
+	float d_offset_R = (ctrlData->yRefRight / 1000
 			* sinf((ctrlData->pitch / 180) * M_PI));
 
 	// 4. 最终轮子位移指令
-	float d_set =  -d_cmd + d_offset;
-	if (d_set > XREF_LIMIT / 1000)
-		d_set = XREF_LIMIT / 1000;
-	if (d_set < -XREF_LIMIT / 1000)
-		d_set = -XREF_LIMIT / 1000;
+	float d_set_L = -d_cmd_L + d_offset_L;
+	float d_set_R = -d_cmd_R + d_offset_R;
+	d_set_L = clampf(d_set_L, -XREF_LIMIT / 1000, XREF_LIMIT / 1000);
+	d_set_R = clampf(d_set_R, -XREF_LIMIT / 1000, XREF_LIMIT / 1000);
+	/*
+	 if (d_set > XREF_LIMIT / 1000)
+	 d_set = XREF_LIMIT / 1000;
+	 if (d_set < -XREF_LIMIT / 1000)
+	 d_set = -XREF_LIMIT / 1000;
+	 */
 
 	// 5. 姿态环（PD控制器 -> 轮子力矩），期望俯仰角 = 0
 	float err_theta = theta_des - ctrlData->pitch;          // 角度误差
@@ -256,9 +246,9 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->m0torque = tau;
 	ctrlData->m1torque = tau;
 	// 输出
-	d_set *= 1000;
-	ctrlData->xRefLeft = d_set;
-	ctrlData->xRefRight = d_set;
+	//d_set *= 1000;
+	ctrlData->xRefLeft = d_set_L * 1000;
+	ctrlData->xRefRight = d_set_R * 1000;
 	printf("%.2f  %.4f\r\n", ctrlData->yRefLeft, ctrlData->xRefLeft);
 }
 

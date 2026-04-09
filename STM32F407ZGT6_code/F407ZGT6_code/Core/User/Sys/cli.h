@@ -15,7 +15,7 @@
 #include "../joint_motor/joint_motor.h"
 #include "../wheel_motor/wheel_motor.h"
 
-extern legData_t legData;
+extern legData_t legData_L,legData_R;
 extern arm_pid_instance_f32 pid_pitch;
 extern arm_pid_instance_f32 pid_speed;
 //#include "midware.h"

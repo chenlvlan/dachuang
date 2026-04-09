@@ -10,7 +10,11 @@
 //#include "arm_math.h"
 
 volatile bool doMotionCtrlCycle = 0;
-legData_t legData = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
+legData_t legData_L = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
+		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
+		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -190.0f };
+
+legData_t legData_R = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
 		65.5f, .theta_f_max = 1.448623f, .theta_f_min = 0.0f, .theta_r_max =
 		1.448623f, .theta_r_min = 0.0f, .x = 0.0f, .y = -190.0f };
 wheelMotorData_t wheelMotorData = { .mode = WM_Torque };
@@ -24,9 +28,9 @@ volatile float remote_turn_angle = 0.0f;     // rad
 volatile float remote_leg_delta = 0.0f;      // mm (对 yRef 的偏置)
 
 //测试代码
-//set_remote_forward_speed(0.4f); // 前进 0.4 m/s
+//set_remote_forward_speed(0.2f); // 前进 0.2 m/s
 //set_remote_turn_angle(0.3f);    // 右转 0.3 rad
-//set_remote_leg_delta(-20.0f);   // 把腿端抬高 20 mm（示例方向）
+//set_remote_leg_delta(-10.0f);   // 把腿端抬高 10 mm（示例方向）
 
 controlData_t ctrlData;
 
@@ -127,12 +131,19 @@ void appLoop() {
 		ctrlData.yaw = yaw;
 
 		control_loop(&ctrlData);
-		//apply_remote_command(&ctrlData);//调用遥控控制
+		apply_remote_command(&ctrlData);//调用遥控控制
 
-		legData.x = ctrlData.xRefLeft; //以左边为基准
-		legData.y = ctrlData.yRefLeft;
-		//printf("X_REF = %.2f, \r\n", ctrlData.xRefLeft);
-		fivebar_inverse_kinematics(&legData);
+		// 1. 左腿赋值 + 逆解
+		legData_L.x = ctrlData.xRefLeft;
+		legData_L.y = ctrlData.yRefLeft;
+		fivebar_inverse_kinematics(&legData_L);
+
+		// 2. 右腿赋值 + 逆解
+		legData_R.x = ctrlData.xRefRight;
+		legData_R.y = ctrlData.yRefRight;
+		fivebar_inverse_kinematics(&legData_R);
+
+
 		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
 		//		wheel_torque_cmd);
 
@@ -148,10 +159,10 @@ void appLoop() {
 		 HAL_UART_Transmit(&huart1, &tmp[0], 16, 0xffff);
 		 */
 
-		JM_PosAbsMode(idLF, legData.theta_f);
-		JM_PosAbsMode(idRF, legData.theta_f);
-		JM_PosAbsMode(idLR, legData.theta_r);
-		JM_PosAbsMode(idRR, legData.theta_r);
+		JM_PosAbsMode(idLF, legData_L.theta_f);
+		JM_PosAbsMode(idRF, legData_R.theta_f);
+		JM_PosAbsMode(idLR, legData_L.theta_r);
+		JM_PosAbsMode(idRR, legData_R.theta_r);
 
 		wheelMotorData.m0target = ctrlData.m0torque;
 		wheelMotorData.m1target = ctrlData.m1torque;
@@ -177,6 +188,7 @@ void apply_remote_command(controlData_t *ctrlData) {
     // remote_forward_speed 已为 m/s； remote_turn_angle 已为 rad
     const float K_FORWARD = 0.05f;  // 速度 -> 扭矩系数（保留或重新标定）
     const float K_TURN = 0.02f;     // 转向 -> 扭矩差分系数
+    const float K_LEG_TURN = 0.5f;
 
     // 读取（本函数在同一线程 context 中被调用，读写 remote_* 已用 volatile）
     float forward = remote_forward_speed;
@@ -192,6 +204,10 @@ void apply_remote_command(controlData_t *ctrlData) {
                                 -TORQUE_LIMIT, TORQUE_LIMIT);
     ctrlData->m1torque = clampf(ctrlData->m1torque + forward_bias - turn_bias,
                                 -TORQUE_LIMIT, TORQUE_LIMIT);
+
+    ctrlData->xRefLeft  +=  turn * K_LEG_TURN;
+    ctrlData->xRefRight -=  turn * K_LEG_TURN;
+
 
     // 把腿高度偏置融合到腿端参考值，注意坐标方向（示例：yRef 为负数向下）
     // 假设 STAND_Y_REF 是 mm 或已用同一单位（你的项目里 STAND_Y_REF 应与 legData.y 单位一致）

@@ -168,7 +168,7 @@ void control_loop(controlData_t *ctrlData) {
 		arm_pid_init_f32(&pid_x, 1);
 		return;
 	}
-
+	/*
 
 	 // 2. 计算车轮平均速度
 	 float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2.0f;
@@ -197,15 +197,16 @@ void control_loop(controlData_t *ctrlData) {
 	 ctrlData->xRefRight = x_ref;
 	 ctrlData->yRefLeft = STAND_Y_REF;
 	 ctrlData->yRefRight = STAND_Y_REF;
+	 */
 
-	/*
 	//下面是zyf临时验证的
 	// 参数检查
 	//if (handle == NULL || tau_out == NULL || d_set_out == NULL) return;
 	ctrlData->yRefLeft = STAND_Y_REF;
-		 ctrlData->yRefRight = STAND_Y_REF;
+	ctrlData->yRefRight = STAND_Y_REF;
 	float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
 	float v_des = 0;
+	float theta_des= 5.0f;
 	// 1. 轮子角速度 -> 线速度
 	float v_actual = speed_avg * 0.025;   // m/s
 
@@ -227,20 +228,22 @@ void control_loop(controlData_t *ctrlData) {
 		d_cmd = xref_lim_SI;
 	if (d_cmd < (-xref_lim_SI))
 		d_cmd = -xref_lim_SI;
+	//printf("d_cmd = %.2f, \r\n", d_cmd);
 
 	// 3. 期望姿态对应的位移偏置 d_offset = -COM_ARM_LEN * sin(theta_des)
 	//float d_offset = -COM_ARM_LEN * sinf(theta_des);
-	//float d_offset = ctrlData->yRefLeft / 1000 * sinf(0);
+	float d_offset = (ctrlData->yRefLeft / 1000
+			* sinf((ctrlData->pitch / 180) * M_PI));
 
 	// 4. 最终轮子位移指令
-	float d_set = d_cmd;
-	if (d_set > XREF_LIMIT)
-		d_set = XREF_LIMIT;
-	if (d_set < -XREF_LIMIT)
-		d_set = -XREF_LIMIT;
+	float d_set =  -d_cmd + d_offset;
+	if (d_set > XREF_LIMIT / 1000)
+		d_set = XREF_LIMIT / 1000;
+	if (d_set < -XREF_LIMIT / 1000)
+		d_set = -XREF_LIMIT / 1000;
 
 	// 5. 姿态环（PD控制器 -> 轮子力矩），期望俯仰角 = 0
-	float err_theta = 0.0f - ctrlData->pitch;          // 角度误差
+	float err_theta = theta_des - ctrlData->pitch;          // 角度误差
 	float tau = PITCH_KP * err_theta
 			- PITCH_KD * (ctrlData->pitch - last_theta);
 	last_theta = ctrlData->pitch;
@@ -253,9 +256,10 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->m0torque = tau;
 	ctrlData->m1torque = tau;
 	// 输出
+	d_set *= 1000;
 	ctrlData->xRefLeft = d_set;
 	ctrlData->xRefRight = d_set;
-*/
+	printf("%.2f  %.4f\r\n", ctrlData->yRefLeft, ctrlData->xRefLeft);
 }
 
 void control_loop_simulinkLoopTest(controlData_t *ctrlData) {

@@ -131,6 +131,7 @@ void appLoop() {
 
 		legData.x = ctrlData.xRefLeft; //以左边为基准
 		legData.y = ctrlData.yRefLeft;
+		//printf("X_REF = %.2f, \r\n", ctrlData.xRefLeft);
 		fivebar_inverse_kinematics(&legData);
 		//printf("%.5f, %.5f, %.5f, %.5f, %.5f\r\n", roll, pitch, yaw, legData.x,
 		//		wheel_torque_cmd);
@@ -168,7 +169,7 @@ void appLoop() {
 		//		wheelMotorData.m0torque, wheelMotorData.m1velocity,
 		//		wheelMotorData.m1torque);
 	}
-	//cli_poll();
+	cli_poll();
 }
 
 
@@ -201,6 +202,7 @@ void apply_remote_command(controlData_t *ctrlData) {
     ctrlData->yRefLeft = clampf(newYLeft, -500.0f, 0.0f);  // 例子：-500..0 mm，请按实际改
     ctrlData->yRefRight = ctrlData->yRefLeft;
 }
+
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM3) {
 		// ---- 这里执行你的 20ms 控制环 ----

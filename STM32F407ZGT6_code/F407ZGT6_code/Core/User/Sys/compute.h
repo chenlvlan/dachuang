@@ -34,7 +34,7 @@ extern UART_HandleTypeDef huart1;
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
 #define XREF_LIMIT     20.0f   // ±20mm
-#define STAND_Y_REF   -150.0f   // 稳定站立高度
+#define STAND_Y_REF   -190.0f   // 稳定站立高度
 
 
 #define PITCH_LIMIT        20.0f   // 俯仰角超限±20度 → 直接停机（核心保护）

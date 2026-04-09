@@ -169,7 +169,7 @@ void control_loop(controlData_t *ctrlData) {
 		return;
 	}
 
-	/*
+
 	 // 2. 计算车轮平均速度
 	 float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2.0f;
 
@@ -197,10 +197,13 @@ void control_loop(controlData_t *ctrlData) {
 	 ctrlData->xRefRight = x_ref;
 	 ctrlData->yRefLeft = STAND_Y_REF;
 	 ctrlData->yRefRight = STAND_Y_REF;
-	 */
+
+	/*
 	//下面是zyf临时验证的
 	// 参数检查
 	//if (handle == NULL || tau_out == NULL || d_set_out == NULL) return;
+	ctrlData->yRefLeft = STAND_Y_REF;
+		 ctrlData->yRefRight = STAND_Y_REF;
 	float speed_avg = (ctrlData->m0speed + ctrlData->m1speed) / 2;
 	float v_des = 0;
 	// 1. 轮子角速度 -> 线速度
@@ -220,10 +223,10 @@ void control_loop(controlData_t *ctrlData) {
 	float d_cmd = SPEED_KP * err_v + integral_v;
 	// 限制 d_cmd 范围，为期望姿态偏置留出空间（预留±0.01m）
 	float xref_lim_SI = XREF_LIMIT / 1000;
-	if (d_cmd > (xref_lim_SI - 0.01f))
-		d_cmd = xref_lim_SI - 0.01f;
-	if (d_cmd < (xref_lim_SI + 0.01f))
-		d_cmd = xref_lim_SI + 0.01f;
+	if (d_cmd > (xref_lim_SI))
+		d_cmd = xref_lim_SI;
+	if (d_cmd < (-xref_lim_SI))
+		d_cmd = -xref_lim_SI;
 
 	// 3. 期望姿态对应的位移偏置 d_offset = -COM_ARM_LEN * sin(theta_des)
 	//float d_offset = -COM_ARM_LEN * sinf(theta_des);
@@ -233,8 +236,8 @@ void control_loop(controlData_t *ctrlData) {
 	float d_set = d_cmd;
 	if (d_set > XREF_LIMIT)
 		d_set = XREF_LIMIT;
-	if (d_set < XREF_LIMIT)
-		d_set = XREF_LIMIT;
+	if (d_set < -XREF_LIMIT)
+		d_set = -XREF_LIMIT;
 
 	// 5. 姿态环（PD控制器 -> 轮子力矩），期望俯仰角 = 0
 	float err_theta = 0.0f - ctrlData->pitch;          // 角度误差
@@ -251,8 +254,8 @@ void control_loop(controlData_t *ctrlData) {
 	ctrlData->m1torque = tau;
 	// 输出
 	ctrlData->xRefLeft = d_set;
-	ctrlData->xRefLeft = d_set;
-
+	ctrlData->xRefRight = d_set;
+*/
 }
 
 void control_loop_simulinkLoopTest(controlData_t *ctrlData) {

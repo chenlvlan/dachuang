@@ -35,6 +35,7 @@ float clampf(float x, float min, float max) {
 
 void fivebar_inverse_kinematics(legData_t *leg_data) {
 	/* ================= 前腿 ================= */
+	leg_data->status = IK_OK;   //默认没问题
 	float x_offset = (-32.75f);
 	float y_offset = (0.0f);
 	float x = leg_data->x + x_offset;
@@ -91,15 +92,23 @@ void fivebar_inverse_kinematics(legData_t *leg_data) {
 	th_r = th_r - M_PI; //关节角取反
 
 	/* ---------- 关节限位 ---------- */
+	if (th_f < leg_data->theta_f_min) //奇怪的奇异值问题
+		th_f += 2 * M_PI;
+	else if (th_f > leg_data->theta_f_max) //奇怪的奇异值问题
+		th_f -= 2 * M_PI;
+	if (th_r < leg_data->theta_r_min)
+		th_r += 2 * M_PI;
+	else if (th_r > leg_data->theta_r_max)
+		th_r -= 2 * M_PI;
 
 	if (th_f < leg_data->theta_f_min || th_f > leg_data->theta_f_max
-			|| th_r < leg_data->theta_r_min || th_r > leg_data->theta_r_max)
+			|| th_r < leg_data->theta_r_min || th_r > leg_data->theta_r_max) {
+		printf("%.4f damn!\r\n", th_f);
 		leg_data->status = IK_JOINT_LIMIT;
+	}
 
 	leg_data->theta_f = th_f;
 	leg_data->theta_r = th_r;
-
-	leg_data->status = IK_OK;
 }
 
 /*
@@ -196,12 +205,6 @@ void control_loop(controlData_t *ctrlData) {
 	float INTEGRAL_LIMIT = 0.02f;
 	integral_v_L = clampf(integral_v_L, -INTEGRAL_LIMIT, INTEGRAL_LIMIT);
 	integral_v_R = clampf(integral_v_R, -INTEGRAL_LIMIT, INTEGRAL_LIMIT);
-	/*
-	 if (integral_v > INTEGRAL_LIMIT)
-	 integral_v = INTEGRAL_LIMIT;
-	 if (integral_v < -INTEGRAL_LIMIT)
-	 integral_v = -INTEGRAL_LIMIT;
-	 */
 
 	float d_cmd_L = SPEED_KP * err_v_L + integral_v_L;
 	float d_cmd_R = SPEED_KP * err_v_R + integral_v_R;
@@ -209,17 +212,14 @@ void control_loop(controlData_t *ctrlData) {
 	float xref_lim_SI = XREF_LIMIT / 1000;
 	d_cmd_L = clampf(d_cmd_L, -xref_lim_SI, xref_lim_SI);
 	d_cmd_R = clampf(d_cmd_R, -xref_lim_SI, xref_lim_SI);
-	/*
-	 if (d_cmd > (xref_lim_SI))
-	 d_cmd = xref_lim_SI;
-	 if (d_cmd < (-xref_lim_SI))
-	 d_cmd = -xref_lim_SI;
-	 */
+
 	//printf("d_cmd = %.2f, \r\n", d_cmd);
 	// 3. 期望姿态对应的位移偏置 d_offset = -COM_ARM_LEN * sin(theta_des)
 	//float d_offset = -COM_ARM_LEN * sinf(theta_des);
 	float d_offset_L = (ctrlData->yRefLeft / 1000
 			* sinf((ctrlData->pitch / 180) * M_PI));
+	ctrlData->yRefLeft *= cosf((ctrlData->pitch / 180) * M_PI);
+	ctrlData->yRefRight *= cosf((ctrlData->pitch / 180) * M_PI);
 	float d_offset_R = (ctrlData->yRefRight / 1000
 			* sinf((ctrlData->pitch / 180) * M_PI));
 
@@ -228,12 +228,6 @@ void control_loop(controlData_t *ctrlData) {
 	float d_set_R = -d_cmd_R + d_offset_R;
 	d_set_L = clampf(d_set_L, -XREF_LIMIT / 1000, XREF_LIMIT / 1000);
 	d_set_R = clampf(d_set_R, -XREF_LIMIT / 1000, XREF_LIMIT / 1000);
-	/*
-	 if (d_set > XREF_LIMIT / 1000)
-	 d_set = XREF_LIMIT / 1000;
-	 if (d_set < -XREF_LIMIT / 1000)
-	 d_set = -XREF_LIMIT / 1000;
-	 */
 
 	// 5. 姿态环（PD控制器 -> 轮子力矩），期望俯仰角 = 0
 	float err_theta = theta_des - ctrlData->pitch;          // 角度误差
@@ -241,10 +235,7 @@ void control_loop(controlData_t *ctrlData) {
 			- PITCH_KD * (ctrlData->pitch - last_theta);
 	last_theta = ctrlData->pitch;
 	// 力矩限幅
-	if (tau > TORQUE_LIMIT)
-		tau = TORQUE_LIMIT;
-	if (tau < -TORQUE_LIMIT)
-		tau = -TORQUE_LIMIT;
+	tau = clampf(tau, -TORQUE_LIMIT, TORQUE_LIMIT);
 
 	ctrlData->m0torque = tau;
 	ctrlData->m1torque = tau;
@@ -252,7 +243,7 @@ void control_loop(controlData_t *ctrlData) {
 	//d_set *= 1000;
 	ctrlData->xRefLeft = d_set_L * 1000;
 	ctrlData->xRefRight = d_set_R * 1000;
-	printf("%.2f  %.4f\r\n", ctrlData->pitch, d_offset_L*1000);
+	//printf("%.2f\r\n", ctrlData->yRefRight);
 }
 
 void control_loop_simulinkLoopTest(controlData_t *ctrlData) {

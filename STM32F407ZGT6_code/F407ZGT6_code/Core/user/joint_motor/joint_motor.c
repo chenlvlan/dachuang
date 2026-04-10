@@ -27,6 +27,11 @@ void JM_SetPosVelModeMaxTorque(uint8_t id, float torque) {
 			(torque / JMDataRead[idToIndex(id)].torqueConst));
 }
 
+void JM_SetPosModeMaxVel(uint8_t id, float speed) {
+	//CommCan_SetVelocity(idToHandle(id), id, radpsToRpm(speed));
+	CommCan_SetPosCtrlMaxVelocity(idToHandle(id), id, speed);
+}
+
 void JM_GetSoftwareInfo(uint8_t id) {
 	CommCan_GetVerInfo(idToHandle(id), id);
 }

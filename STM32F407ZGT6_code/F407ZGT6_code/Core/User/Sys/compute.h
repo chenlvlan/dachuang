@@ -49,7 +49,7 @@ extern UART_HandleTypeDef huart1;
 
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
-#define XREF_LIMIT     20.0f   // ±20mm
+#define XREF_LIMIT     40.0f   // ±20mm
 #define STAND_Y_REF   -140.0f   // 稳定站立高度
 
 

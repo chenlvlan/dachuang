@@ -7,7 +7,11 @@
 
 #include "app.h"
 #include <math.h>
+#include <stdlib.h>
 //#include "arm_math.h"
+
+// 【函数提前声明，解决隐式声明报错】
+void parseWiFiCmd(void);
 
 volatile bool doMotionCtrlCycle = 0;
 legData_t legData_L = { .L1 = 90.0f, .L2 = 90.0f, .L3 = 130.0f, .L4 = 130.0f, .d =
@@ -78,6 +82,7 @@ void HVHP(bool isEN) {
 	HAL_GPIO_WritePin(GPIOF, GPIO_PIN_12, (GPIO_PinState) isEN);
 }
 
+
 void appSetup() {
 	HAL_NVIC_DisableIRQ(EXTI3_IRQn);   // 例：INT 接在 PA3
 	HVHP(1); //母线上电
@@ -107,6 +112,11 @@ void appSetup() {
 	HAL_NVIC_ClearPendingIRQ(EXTI3_IRQn);
 	HAL_NVIC_EnableIRQ(EXTI3_IRQn);
 	control_init();
+
+	// ==================== 【初始化UART5 WiFi】 ====================
+	HAL_UART_Receive_DMA(&huart5, rxBuf, rxBufSize);
+	__HAL_UART_ENABLE_IT(&huart5, UART_IT_IDLE);
+
 	//control_comm_init();
 	HAL_Delay(2000);
 }
@@ -121,7 +131,7 @@ void appLoop() {
 		quat2euler(quat_nom[0], quat_nom[1], quat_nom[2], quat_nom[3], &roll,
 			&pitch, &yaw);
 
-		set_remote_forward_speed(0.0f);//调试代码
+		//set_remote_forward_speed(-0.02f);//调试代码
 		//set_remote_leg_delta(-10.0f);   // 把腿端抬高 10 mm（示例方向）
 		//set_remote_turn_angle(0.2f);    // 右转 0.3 rad
 
@@ -182,6 +192,9 @@ void appLoop() {
 		//		wheelMotorData.m0torque, wheelMotorData.m1velocity,
 		//		wheelMotorData.m1torque);
 	}
+
+	// ==================== 调用WiFi解析 ====================
+	parseWiFiCmd();
 	cli_poll();
 }
 
@@ -220,6 +233,53 @@ void apply_remote_command(controlData_t *ctrlData) {
     // ctrlData 的 yRefLeft/yRefRight 对应 compute.c 中使用的 xRef/yRef
     ctrlData->yRefLeft = clampf(newYLeft, -500.0f, 0.0f);  // 例子：-500..0 mm，请按实际改
     ctrlData->yRefRight = ctrlData->yRefLeft;
+}
+
+// ==================== WiFi遥控解析（用你现有的remote变量） ====================
+void parseWiFiCmd(void) {
+	extern volatile uint8_t frameReady;
+	extern uint8_t rxData[];
+
+	if (frameReady) {
+		frameReady = 0;
+
+		// 指令例子：
+		// F50 → 前进0.5m/s
+		// B30 → 后退0.3m/s
+		// L40 → 左转
+		// R40 → 右转
+		// S   → 急停
+		// H20 → 腿抬高20mm
+		// D20 → 腿降低20mm
+
+		if (rxData[0] == 'F') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_forward_speed(val / 100.0f);
+		}
+		else if (rxData[0] == 'B') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_forward_speed(-val / 100.0f);
+		}
+		else if (rxData[0] == 'L') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_turn_angle(val / 100.0f);
+		}
+		else if (rxData[0] == 'R') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_turn_angle(-val / 100.0f);
+		}
+		else if (rxData[0] == 'H') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_leg_delta(val);
+		}
+		else if (rxData[0] == 'D') {
+			int val = atoi((char*)&rxData[1]);
+			set_remote_leg_delta(-val);
+		}
+		else if (rxData[0] == 'S') {
+			emergency_stop_motors();
+		}
+	}
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {

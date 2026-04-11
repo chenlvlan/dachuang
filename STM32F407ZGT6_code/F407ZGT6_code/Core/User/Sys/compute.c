@@ -17,10 +17,10 @@ arm_pid_instance_f32 pid_pitch;     // 姿态 PID（输出力矩）
 arm_pid_instance_f32 pid_speed;      // 速度 PID
 arm_pid_instance_f32 pid_x;
 
-static uint8_t rxBuf[rxBufSize];
-static uint8_t rxData[rxDataSize];
+uint8_t rxBuf[rxBufSize];
+uint8_t rxData[rxDataSize];
 static volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
-static volatile uint8_t frameReady = 0;   // 帧就绪标志
+volatile uint8_t frameReady = 0;   // 帧就绪标志
 
 float clampf(float x, float min, float max) {
 	if (x < min)
@@ -313,6 +313,30 @@ void control_loop_simulinkLoopTestRx(controlData_t *ctrlData) {
 		ctrlData->xRefRight = xRef_f;
 		ctrlData->yRefLeft = yRef_f;
 		ctrlData->yRefRight = yRef_f;
+	}
+}
+
+// ==================== 【UART5 WiFi接收函数】 ====================
+void uart5DMA(UART_HandleTypeDef *huart) {
+	if (huart->Instance == UART5) { // 【只改这里：USART1 → UART5】
+		HAL_UART_DMAStop(&huart5);  // 【只改这里：huart1 → huart5】
+
+		uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart5.hdmarx); // 【只改这里：huart1→huart5】
+
+		// 调试打印（可选，留着方便看WiFi有没有发数据）
+		printf("WiFi DMA Len: %d\r\n", frame_len);
+
+		// WiFi指令一般很短，不用>=16，改成>=1就行（兼容所有简单指令：F/B/L/R/S）
+		if (frame_len >= 1) {
+			frameToDealLen = frame_len;
+			frameReady = 1;
+			memcpy(&rxData[0], &rxBuf[0], frame_len);
+		} else {
+			frameToDealLen = 0;
+			frameReady = 0;
+		}
+
+		HAL_UART_Receive_DMA(&huart5, &rxBuf[0], rxBufSize); // 【只改这里：huart1→huart5】
 	}
 }
 

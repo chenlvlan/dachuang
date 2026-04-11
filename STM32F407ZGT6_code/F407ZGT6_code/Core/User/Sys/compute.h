@@ -127,6 +127,7 @@ void control_init();
 
 void control_comm_init();
 void uart1DMA(UART_HandleTypeDef *huart);
+void uart5DMA(UART_HandleTypeDef *huart);
 void control_loop(controlData_t *ctrlData);
 void control_loop_simulinkLoopTest(controlData_t *ctrlData);
 

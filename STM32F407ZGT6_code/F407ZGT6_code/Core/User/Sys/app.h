@@ -7,7 +7,10 @@
 
 #ifndef USER_SYS_APP_H_
 #define USER_SYS_APP_H_
+#define rxBufSize 256
 
+
+#include <stdint.h>
 #include "main.h"
 #include <stdbool.h>
 
@@ -17,6 +20,11 @@
 #include "../joint_motor/joint_motor.h"
 #include "../wheel_motor/wheel_motor.h"
 //#include "midware.h.txt"
+
+// 声明 compute.c 里的变量
+extern uint8_t rxBuf[];
+extern uint8_t rxData[];
+extern volatile uint8_t frameReady;
 
 //extern bool doMotionCtrlCycle;
 //extern UART_HandleTypeDef huart4;

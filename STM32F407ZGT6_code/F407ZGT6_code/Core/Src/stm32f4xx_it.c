@@ -389,6 +389,18 @@ void DMA2_Stream7_IRQHandler(void)
   /* USER CODE END DMA2_Stream7_IRQn 1 */
 }
 
+// ==================== UART5 中断服务函数（完全抄你的串口中断风格） ====================
+void UART5_IRQHandler(void)
+{
+  /* USER CODE BEGIN UART5_IRQn 0 */
+	if (__HAL_UART_GET_FLAG(&huart5, UART_FLAG_IDLE)) {
+		__HAL_UART_CLEAR_IDLEFLAG(&huart5);
+		uart5DMA(&huart5); // 调用上面写的UART5 DMA处理函数
+	}
+  /* USER CODE END UART5_IRQn 0 */
+  HAL_UART_IRQHandler(&huart5);
+}
+
 /* USER CODE BEGIN 1 */
 
 /* USER CODE END 1 */

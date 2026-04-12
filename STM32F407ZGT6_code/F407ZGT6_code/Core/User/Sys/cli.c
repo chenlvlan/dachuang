@@ -39,7 +39,7 @@ void cli_init(void) {
 	cli_idx = 0;
 	cli_cmd_ready = 0;
 
-	HAL_UART_Receive_IT(&huart5, &cli_rx_char, 1);
+	HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
 }
 
 /* 在 main while(1) 中调用 */
@@ -72,10 +72,10 @@ void cli_uart_rx_char(uint8_t ch) {
 /* ================= UART 回调（放在 cli.c 或 main.c 均可） ================= */
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
-	if (huart == &huart5) {
+	if (huart == &huart1) {
 		printf("in isr\r\n");
 		cli_uart_rx_char(cli_rx_char);
-		HAL_UART_Receive_IT(&huart5, &cli_rx_char, 1);
+		HAL_UART_Receive_IT(&huart1, &cli_rx_char, 1);
 	}
 }
 

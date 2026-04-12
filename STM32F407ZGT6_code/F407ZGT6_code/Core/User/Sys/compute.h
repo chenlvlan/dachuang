@@ -40,6 +40,7 @@ extern UART_HandleTypeDef huart1;
 // 姿态 PID（力矩环，快）
  */
 #define PITCH_KP   0.02f
+//#define PITCH_KP   0.01f
 #define PITCH_KI   0.000000005f/CTRL_DT
 #define PITCH_KD   0.002f/CTRL_DT
 
@@ -50,7 +51,7 @@ extern UART_HandleTypeDef huart1;
 /* 限幅 */
 #define TORQUE_LIMIT   0.11f
 #define XREF_LIMIT     40.0f   // ±20mm
-#define STAND_Y_REF   -140.0f   // 稳定站立高度
+#define STAND_Y_REF   -120.0f   // 稳定站立高度
 
 
 #define PITCH_LIMIT        20.0f   // 俯仰角超限±20度 → 直接停机（核心保护）
@@ -125,8 +126,8 @@ void quat2euler(float w, float x, float y, float z, float *roll, float *pitch,
 
 void control_init();
 
-void control_comm_init();
-void uart1DMA(UART_HandleTypeDef *huart);
+//void control_comm_init();
+//void uart1DMA(UART_HandleTypeDef *huart);
 void uart5DMA(UART_HandleTypeDef *huart);
 void control_loop(controlData_t *ctrlData);
 void control_loop_simulinkLoopTest(controlData_t *ctrlData);

@@ -18,7 +18,9 @@ arm_pid_instance_f32 pid_speed;      // 速度 PID
 arm_pid_instance_f32 pid_x;
 
 uint8_t rxBuf[rxBufSize];
+uint8_t rxBufU5[rxBufSize];
 uint8_t rxData[rxDataSize];
+uint8_t rx_string[rxDataSize];
 static volatile uint16_t frameToDealLen = 0;     // 当前待处理帧长度
 volatile uint8_t frameReady = 0;   // 帧就绪标志
 
@@ -34,6 +36,7 @@ float clampf(float x, float min, float max) {
 //const static float legData[5] = { 90.0, 90.0, 130.0, 130.0, 65.5 };
 
 void fivebar_inverse_kinematics(legData_t *leg_data) {
+	leg_data->status = IK_OK;   //默认没问题
 	/* ================= 前腿 ================= */
 	float x_offset = (-32.75f);
 	float y_offset = (0.0f);
@@ -91,15 +94,23 @@ void fivebar_inverse_kinematics(legData_t *leg_data) {
 	th_r = th_r - M_PI; //关节角取反
 
 	/* ---------- 关节限位 ---------- */
+	if (th_f < leg_data->theta_f_min) //奇怪的奇异值问题
+		th_f += 2 * M_PI;
+	else if (th_f > leg_data->theta_f_max) //奇怪的奇异值问题
+		th_f -= 2 * M_PI;
+	if (th_r < leg_data->theta_r_min)
+		th_r += 2 * M_PI;
+	else if (th_r > leg_data->theta_r_max)
+		th_r -= 2 * M_PI;
 
 	if (th_f < leg_data->theta_f_min || th_f > leg_data->theta_f_max
-			|| th_r < leg_data->theta_r_min || th_r > leg_data->theta_r_max)
+			|| th_r < leg_data->theta_r_min || th_r > leg_data->theta_r_max) {
+		printf("%.4f damn!\r\n", th_f);
 		leg_data->status = IK_JOINT_LIMIT;
+	}
 
 	leg_data->theta_f = th_f;
 	leg_data->theta_r = th_r;
-
-	leg_data->status = IK_OK;
 }
 
 /*
@@ -239,9 +250,10 @@ void control_loop(controlData_t *ctrlData) {
 
 	//加一个滤波
 	//pitch_vel_filtered = alpha * pitch_vel_filtered + (1 - alpha) * (ctrlData->pitch - last_theta);
-    //float tau = PITCH_KP * err_theta - PITCH_KD * pitch_vel_filtered;
+	//float tau = PITCH_KP * err_theta - PITCH_KD * pitch_vel_filtered;
 	//这里改了
-	float tau = PITCH_KP * err_theta - PITCH_KD * (ctrlData->pitch - last_theta);
+	float tau = PITCH_KP * err_theta
+			- PITCH_KD * (ctrlData->pitch - last_theta);
 	last_theta = ctrlData->pitch;
 	// 力矩限幅
 	if (tau > TORQUE_LIMIT)
@@ -256,7 +268,6 @@ void control_loop(controlData_t *ctrlData) {
 
 	ctrlData->xRefLeft = d_set_L * 1000;
 	ctrlData->xRefRight = d_set_R * 1000;
-
 
 }
 
@@ -324,45 +335,50 @@ void uart5DMA(UART_HandleTypeDef *huart) {
 		uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart5.hdmarx); // 【只改这里：huart1→huart5】
 
 		// 调试打印（可选，留着方便看WiFi有没有发数据）
-		printf("WiFi DMA Len: %d\r\n", frame_len);
+		//printf("WiFi DMA Len: %d\r\n", frame_len);
 
 		// WiFi指令一般很短，不用>=16，改成>=1就行（兼容所有简单指令：F/B/L/R/S）
 		if (frame_len >= 1) {
 			frameToDealLen = frame_len;
 			frameReady = 1;
-			memcpy(&rxData[0], &rxBuf[0], frame_len);
+			memcpy(&rx_string[0], &rxBufU5[0], frame_len);
+			printf("%s", rx_string);
 		} else {
 			frameToDealLen = 0;
 			frameReady = 0;
 		}
 
-		HAL_UART_Receive_DMA(&huart5, &rxBuf[0], rxBufSize); // 【只改这里：huart1→huart5】
+		HAL_UART_Receive_DMA(&huart5, &rxBufU5[0], rxBufSize); // 【只改这里：huart1→huart5】
 	}
 }
 
-void uart1DMA(UART_HandleTypeDef *huart) {
-	if (huart->Instance == USART1) {
-		HAL_UART_DMAStop(&huart1);
-		//printf("cool we are going to deal the DMA\r\n");
-		uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
-		//printf("NDTR=%d\r\n", __HAL_DMA_GET_COUNTER(huart1.hdmarx));
-		//HAL_UART_DMAStop(&huart1);
-		printf("DMA %d\r\n", frame_len);
-		if (frame_len >= 16) {
-			frameToDealLen = frame_len;
-			frameReady = 1;  // 标记帧就绪
-			memcpy(&rxData[0], &rxBuf[0], frame_len);
-		} else {
-			frameToDealLen = 0;
-			frameReady = 0;
-		}
+/*
+ void uart1DMA(UART_HandleTypeDef *huart) {
+ if (huart->Instance == USART1) {
+ HAL_UART_DMAStop(&huart1);
+ //printf("cool we are going to deal the DMA\r\n");
+ uint16_t frame_len = rxBufSize - __HAL_DMA_GET_COUNTER(huart1.hdmarx);
+ //printf("NDTR=%d\r\n", __HAL_DMA_GET_COUNTER(huart1.hdmarx));
+ //HAL_UART_DMAStop(&huart1);
+ printf("DMA %d\r\n", frame_len);
+ if (frame_len >= 16) {
+ frameToDealLen = frame_len;
+ frameReady = 1;  // 标记帧就绪
+ memcpy(&rxData[0], &rxBuf[0], frame_len);
+ } else {
+ frameToDealLen = 0;
+ frameReady = 0;
+ }
 
-		HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
+ HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
 
-	}
-}
+ }
+ }
+ */
 
-void control_comm_init() {
-	HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
-	__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
-}
+/*
+ void control_comm_init() {
+ HAL_UART_Receive_DMA(&huart1, &rxBuf[0], rxBufSize);
+ __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+ }
+ */
